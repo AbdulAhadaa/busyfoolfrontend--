@@ -5,10 +5,29 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Coffee, Mail, Lock, Eye, EyeOff, XCircle, ArrowRight, Shield } from "lucide-react"
 
+
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  
+  const [showToast, setShowToast] = useState(false)
+  const [toastMsg, setToastMsg] = useState("")
+  const [showLoginToast, setShowLoginToast] = useState(false)
+
+  React.useEffect(() => {
+    if (localStorage.getItem("signupSuccess")) {
+      setToastMsg("Account created successfully! Please log in.");
+      setShowToast(true);
+      localStorage.removeItem("signupSuccess");
+      setTimeout(() => setShowToast(false), 4000);
+    }
+    if (localStorage.getItem("loginSuccess")) {
+      setToastMsg("Login successful! Redirecting...");
+      setShowLoginToast(true);
+      localStorage.removeItem("loginSuccess");
+      setTimeout(() => setShowLoginToast(false), 3000);
+    }
+  }, []);
+
   const {
     register,
     handleSubmit,
@@ -31,7 +50,9 @@ export default function Login() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        alert(errorData.message || "Login failed");
+        setToastMsg(errorData.message || "Login failed");
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 4000);
         return;
       }
 
@@ -41,10 +62,13 @@ export default function Login() {
         localStorage.setItem("accessToken", user.accessToken);
       }
 
-      // Optionally redirect to dashboard
+      // Show login toast and redirect
+      localStorage.setItem("loginSuccess", "1");
       window.location.href = "/welcome";
     } catch (error) {
-      alert("An error occurred. Please try again.");
+      setToastMsg("An error occurred. Please try again.");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 4000);
     } finally {
       setIsLoading(false)
     }
@@ -52,6 +76,26 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center px-4 py-8 relative overflow-hidden">
+      {/* Toast Notification */}
+      {(showToast || showLoginToast) && (
+        <div className={`fixed top-6 right-6 z-50 transition-all duration-300 ${showToast || showLoginToast ? 'opacity-100' : 'opacity-0'}`}>
+          <div className={`flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border-l-4 ${showLoginToast ? 'border-green-500 bg-green-50' : 'border-amber-500 bg-amber-50'}`}>
+            <div className={`rounded-full p-2 ${showLoginToast ? 'bg-green-100' : 'bg-amber-100'}`}>
+              {showLoginToast ? <CheckCircle className="w-6 h-6 text-green-600" /> : <CheckCircle className="w-6 h-6 text-amber-600" />}
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-gray-900">{showLoginToast ? 'Success!' : 'Account Created'}</p>
+              <p className="text-sm text-gray-700">{toastMsg}</p>
+            </div>
+            <button
+              onClick={() => { setShowToast(false); setShowLoginToast(false); }}
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <XCircle className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+        </div>
+      )}
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-amber-200/20 to-orange-300/20 rounded-full blur-3xl animate-pulse"></div>

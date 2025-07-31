@@ -1,12 +1,16 @@
 import React from "react"
+
 import {
   LayoutDashboard,
   Coffee,
   Leaf,
-  BarChart,
+  BarChart3,
   LogOut,
   X,
-  Boxes
+  Package,
+  ShoppingCart,
+  TrendingUp,
+  Receipt
 } from "lucide-react"
 import { NavLink } from "react-router-dom"
 
@@ -14,9 +18,11 @@ const navItems = [
   { name: "Dashboard", icon: LayoutDashboard, path: "/welcome" },
   { name: "Products", icon: Coffee, path: "/products" },
   { name: "Ingredients", icon: Leaf, path: "/ingredients" },
-  { name: "Stock", icon: Boxes, path: "/stock" },
+  { name: "Stock", icon: Package, path: "/stock" },
+  { name: "Purchase", icon: ShoppingCart, path: "/purchases" },
+  { name: "Sales", icon: Receipt, path: "/sales" },
+  { name: "Analytics", icon: BarChart3, path: "/dashboard" },
 ]
-
 export const Sidebar = ({ isOpen, onClose }) => {
    const handleLogout = async () => {
     const token = localStorage.getItem("accessToken");

@@ -386,9 +386,9 @@ const handleImportCSV = async (event) => {
  return (
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-br bg-white ">
-        <Sidebar />
+       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="md:pl-64 flex flex-col min-h-screen">
-          <Navbar />
+         <Navbar onToggleSidebar={() => setSidebarOpen(true)} />
           <main className="flex-1 p-4 sm:p-6 space-y-6">
             <div className="max-w-7xl mx-auto">
               {/* Header */}

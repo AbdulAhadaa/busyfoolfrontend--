@@ -77,24 +77,50 @@ export default function Products() {
   });
   useEffect(() => {
     setIsLoadingProducts(true);
-    const fetchProducts = async () => {
+    // Fetch products and sales, then merge numberOfSales into each product
+    const fetchProductsAndSales = async () => {
       const token = localStorage.getItem("accessToken");
       try {
-        const response = await fetch("http://localhost:3000/products", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        // Fetch products
+        const productsRes = await fetch("http://localhost:3000/products", {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        if (response.ok) {
-          const data = await response.json();
-          setProducts(data);
+        let productsData = [];
+        if (productsRes.ok) {
+          productsData = await productsRes.json();
         }
+
+        // Fetch sales
+        const salesRes = await fetch("http://localhost:3000/sales", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        let salesData = [];
+        if (salesRes.ok) {
+          salesData = await salesRes.json();
+        }
+
+        // Aggregate sales by productId
+        const salesByProduct = {};
+        salesData.forEach((sale) => {
+          const productId = sale.product?.id;
+          const qty = Number(sale.quantity) || 0;
+          if (productId) {
+            salesByProduct[productId] = (salesByProduct[productId] || 0) + qty;
+          }
+        });
+
+        // Inject numberOfSales into each product
+        const mergedProducts = productsData.map((product) => ({
+          ...product,
+          numberOfSales: salesByProduct[product.id] || 0,
+        }));
+        setProducts(mergedProducts);
       } catch (error) {
         // Optionally handle error
       }
       setIsLoadingProducts(false);
     };
-    fetchProducts();
+    fetchProductsAndSales();
 
     // Fetch all ingredients for selection and table
     const fetchIngredients = async () => {
@@ -425,7 +451,7 @@ export default function Products() {
                 <input
                   type="checkbox"
                   checked={checked}
-                  onChange={(e) => toggleIngredient(ingredient, e.target.checked)}
+                  onChange={e => toggleIngredient(ingredient, e.target.checked)}
                 />
                 <span className="flex-1 text-gray-800 text-sm">
                   {ingredient.name} ({ingredient.unit})
@@ -435,46 +461,32 @@ export default function Products() {
                 </span>
                 {checked && selected && (
                   <>
-                    <input
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={selected.selectedQuantity !== undefined ? selected.selectedQuantity : ""}
-                      onChange={(e) => {
-                        let val = parseInt(e.target.value);
-                        if (isNaN(val) || val < 1) val = 1;
-                        updateIngredient(ingredient.id, { selectedQuantity: val });
-                      }}
-                      className="w-16 px-2 py-1 border border-gray-200 rounded"
-                      placeholder={ingredient.unit === "kg" ? "g" : ingredient.unit === "L" ? "ml" : ingredient.unit}
-                    />
-                    {/* Unit selector for subunit/unit */}
-                    {["L", "kg"].includes(ingredient.unit) && (
-                      <select
-                        value={selected.selectedUnit || ingredient.unit}
-                        onChange={(e) => updateIngredient(ingredient.id, { selectedUnit: e.target.value })}
-                        className="ml-2 px-2 py-1 border border-gray-200 rounded text-xs"
-                      >
-                        {(() => {
-                          const unit = ingredient.unit;
-                          const selectedUnit = selected.selectedUnit || unit;
-                          let options = [];
-                          if (unit === "L") {
-                            options = [selectedUnit, selectedUnit === "L" ? "ml" : "L"];
-                          } else if (unit === "kg") {
-                            options = [selectedUnit, selectedUnit === "kg" ? "g" : "kg"];
-                          }
-                          return options.map((opt) => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ));
-                        })()}
-                      </select>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={selected.selectedQuantity !== undefined ? selected.selectedQuantity : ""}
+                        onChange={e => {
+                          let val = Math.max(1, parseInt(e.target.value) || 1);
+                          updateIngredient(ingredient.id, { selectedQuantity: val });
+                        }}
+                        className="w-16 px-2 py-1 border border-gray-200 rounded"
+                        placeholder={ingredient.unit === "kg" ? "g" : ingredient.unit === "L" ? "ml" : ingredient.unit}
+                      />
+                      <span className="text-xs text-gray-500">
+                        {ingredient.unit === "L"
+                          ? "ml"
+                          : ingredient.unit === "kg"
+                          ? "g"
+                          : ingredient.unit || "unit"}
+                      </span>
+                    </div>
                     <label className="flex items-center gap-1 text-xs">
                       <input
                         type="checkbox"
                         checked={!!selected.is_optional}
-                        onChange={(e) => updateIngredient(ingredient.id, { is_optional: e.target.checked })}
+                        onChange={e => updateIngredient(ingredient.id, { is_optional: e.target.checked })}
                       />
                       Optional
                     </label>
@@ -766,20 +778,27 @@ export default function Products() {
         (filterStatus === "all" || product.status === filterStatus)
     )
     .sort((a, b) => {
+      // Always use sum of sales.quantity for number of sales
+      const getNumberOfSales = (product) =>
+        Array.isArray(product.sales)
+          ? product.sales.reduce((sum, sale) => sum + (Number(sale.quantity) || 0), 0)
+          : 0;
       switch (sortBy) {
         case "margin":
-          return b.marginPercent - a.marginPercent;
-        case "sales":
-          return b.sales - a.sales;
+          return (b.margin_percent || 0) - (a.margin_percent || 0);
+        case "sales": {
+          return getNumberOfSales(b) - getNumberOfSales(a);
+        }
         case "price":
-          return b.sellPrice - a.sellPrice;
+          return (b.sell_price || 0) - (a.sell_price || 0);
         case "name":
           return a.name.localeCompare(b.name);
-        case "impact":
-          return (
-            Math.abs(b.marginAmount * b.sales) -
-            Math.abs(a.marginAmount * a.sales)
-          );
+        case "impact": {
+          // Compute impact as marginAmount * numberOfSales
+          const aMarginAmount = typeof a.margin_amount === "number" ? a.margin_amount : Number(a.margin_amount) || 0;
+          const bMarginAmount = typeof b.margin_amount === "number" ? b.margin_amount : Number(b.margin_amount) || 0;
+          return Math.abs(bMarginAmount * getNumberOfSales(b)) - Math.abs(aMarginAmount * getNumberOfSales(a));
+        }
         default:
           return 0;
       }
@@ -822,8 +841,9 @@ export default function Products() {
   const losingMoneyProducts = products.filter(
     (p) => p.status === "losing money"
   );
+  // Use numberOfSales for loss calculation
   const totalDailyLoss = losingMoneyProducts.reduce(
-    (acc, p) => acc + Math.abs(p.marginAmount) * p.sales,
+    (acc, p) => acc + Math.abs(Number(p.marginAmount) || 0) * (Number(p.numberOfSales) || 0),
     0
   );
 
@@ -868,8 +888,11 @@ export default function Products() {
                       {product.name}
                     </span>
                     <span className="text-red-600 font-bold text-sm">
-                      -${Math.abs(product.marginAmount).toFixed(2)}
+                      -${(Math.abs(Number(product.marginAmount) || 0) * (Number(product.numberOfSales) || 0)).toFixed(2)}
                     </span>
+                  </div>
+                  <div className="text-xs text-gray-500 mb-1">
+                    {Number(product.numberOfSales) || 0} sale{Number(product.numberOfSales) === 1 ? '' : 's'}
                   </div>
                   {product.quickWin && (
                     <p className="text-xs text-gray-600 mb-2">
@@ -980,52 +1003,51 @@ const SuccessToast = () => (
       );
       const selected = formData.ingredients.find((i) => i.id === ingredient.id);
       return (
-        <div key={ingredient.id} className="flex items-center gap-2 mb-2">
-          <input
-            type="checkbox"
-            checked={checked}
-            onChange={(e) => {
-              // Always update parent state
-              handleIngredientCheck(ingredient, e.target.checked);
-            }}
-          />
-          <span className="flex-1 text-gray-800 text-sm">
-            {ingredient.name} ({ingredient.unit})
-            <span className="ml-2 text-xs text-gray-500">
-              {ingredient.unit === "kg"
-                ? `${(getIngredientPrice(ingredient) / 1000).toFixed(4)} per g`
-                : ingredient.unit === "L"
-                ? `${(getIngredientPrice(ingredient) / 1000).toFixed(4)} per ml`
-                : `$${getIngredientPrice(ingredient).toFixed(2)}`}
-            </span>
-          </span>
-          {checked && selected && (
-            <>
-              <input
-                type="number"
-                min="1"
-                value={selected.selectedQuantity || 1}
-                onChange={(e) => {
-                  handleIngredientQuantity(
-                    ingredient.id,
-                    Math.max(1, parseInt(e.target.value) || 1)
-                  );
-                }}
-                className="w-16 px-2 py-1 border border-gray-200 rounded"
-                placeholder="Qty"
-              />
-              <label className="flex items-center gap-1 text-xs">
+              <div key={ingredient.id} className="flex items-center gap-2 mb-2">
                 <input
                   type="checkbox"
-                  checked={!!selected.is_optional}
-                  onChange={(e) =>
-                    handleOptionalCheck(ingredient.id, e.target.checked)
-                  }
+                  checked={checked}
+                  onChange={e => toggleIngredient(ingredient, e.target.checked)}
                 />
-                Optional
-              </label>
-            </>
-          )}
+                <span className="flex-1 text-gray-800 text-sm">
+                  {ingredient.name} ({ingredient.unit})
+                  <span className="ml-2 text-xs text-gray-500">
+                    ${getIngredientPrice(ingredient).toFixed(2)}
+                  </span>
+                </span>
+                {checked && selected && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={selected.selectedQuantity !== undefined ? selected.selectedQuantity : ""}
+                        onChange={e => {
+                          let val = Math.max(1, parseInt(e.target.value) || 1);
+                          updateIngredient(ingredient.id, { selectedQuantity: val });
+                        }}
+                        className="w-16 px-2 py-1 border border-gray-200 rounded"
+                        placeholder={ingredient.unit === "kg" ? "g" : ingredient.unit === "L" ? "ml" : ingredient.unit}
+                      />
+                      <span className="text-xs text-gray-500">
+                        {ingredient.unit === "L"
+                          ? "ml"
+                          : ingredient.unit === "kg"
+                          ? "g"
+                          : ingredient.unit || "unit"}
+                      </span>
+                    </div>
+                    <label className="flex items-center gap-1 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={!!selected.is_optional}
+                        onChange={e => updateIngredient(ingredient.id, { is_optional: e.target.checked })}
+                      />
+                      Optional
+                    </label>
+                  </>
+                )}
         </div>
       );
     });
@@ -1179,55 +1201,34 @@ const SuccessToast = () => (
                 </span>
                 {checked && selected && (
                   <>
-                    <input
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={selected.selectedQuantity || 1}
-                      onChange={(e) => {
-                        let val = Math.max(1, parseInt(e.target.value) || 1);
-                        setLocalForm((f) => ({
-                          ...f,
-                          ingredients: f.ingredients.map((i) =>
-                            i.id === ingredient.id
-                              ? { ...i, selectedQuantity: val }
-                              : i
-                          ),
-                        }));
-                      }}
-                      className="w-16 px-2 py-1 border border-gray-200 rounded"
-                      placeholder="Qty"
-                    />
-                    {/* Unit selector for subunit/unit */}
-                    {["L", "kg"].includes(ingredient.unit) && (
-                      <select
-                        value={selected.selectedUnit || ingredient.unit}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={selected.selectedQuantity || 1}
                         onChange={(e) => {
+                          let val = Math.max(1, parseInt(e.target.value) || 1);
                           setLocalForm((f) => ({
                             ...f,
                             ingredients: f.ingredients.map((i) =>
                               i.id === ingredient.id
-                                ? { ...i, selectedUnit: e.target.value }
+                                ? { ...i, selectedQuantity: val }
                                 : i
                             ),
                           }));
                         }}
-                        className="ml-2 px-2 py-1 border border-gray-200 rounded text-xs"
-                      >
-                        {ingredient.unit === "L" && (
-                          <>
-                            <option value="L">L</option>
-                            <option value="ml">ml</option>
-                          </>
-                        )}
-                        {ingredient.unit === "kg" && (
-                          <>
-                            <option value="kg">kg</option>
-                            <option value="g">g</option>
-                          </>
-                        )}
-                      </select>
-                    )}
+                        className="w-16 px-2 py-1 border border-gray-200 rounded"
+                        placeholder="Qty"
+                      />
+                      <span className="text-xs text-gray-500">
+                        {ingredient.unit === "L"
+                          ? "ml"
+                          : ingredient.unit === "kg"
+                          ? "g"
+                          : ingredient.unit || "unit"}
+                      </span>
+                    </div>
                     <label className="flex items-center gap-1 text-xs">
                       <input
                         type="checkbox"
@@ -1502,9 +1503,8 @@ const SuccessToast = () => (
     const totalCost = Number(product.total_cost) || 0;
     const marginAmount = Number(product.margin_amount) || 0;
     const marginPercent = Number(product.margin_percent) || 0;
-    const sales = Array.isArray(product.sales)
-      ? product.sales.reduce((acc, s) => acc + (Number(s.quantity) || 0), 0)
-      : Number(product.sales) || 0;
+    // Use injected numberOfSales (from merged sales data)
+    const numberOfSales = Number(product.numberOfSales) || 0;
 
     return (
       <motion.div
@@ -1617,11 +1617,11 @@ const SuccessToast = () => (
                   </span>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-500">Sales Today</p>
+                  <p className="text-xs text-gray-500">Number of Sales</p>
                   <div className="flex items-center gap-1">
                     <BarChart3 className="w-3 h-3 text-gray-400" />
                     <span className="font-bold text-sm text-gray-700">
-                      {sales}
+                      {numberOfSales}
                     </span>
                   </div>
                 </div>
@@ -1806,7 +1806,7 @@ const SuccessToast = () => (
             </tr>
           </thead>
           <tbody>
-            {products.map((product, index) => {
+            {filteredProducts.map((product, index) => {
               const sellPrice =
                 typeof product.sell_price === "number"
                   ? product.sell_price
@@ -1827,12 +1827,8 @@ const SuccessToast = () => (
               const createdAt = product.created_at
                 ? new Date(product.created_at).toLocaleString()
                 : "";
-              const sales = Array.isArray(product.sales)
-                ? product.sales.reduce(
-                    (acc, s) => acc + (Number(s.quantity) || 0),
-                    0
-                  )
-                : Number(product.sales) || 0;
+              // Use injected numberOfSales (from merged sales data)
+              const numberOfSales = Number(product.numberOfSales) || 0;
               const ingredientsCount = Array.isArray(product.ingredients)
                 ? product.ingredients.length
                 : 0;
@@ -1873,7 +1869,7 @@ const SuccessToast = () => (
                   <td className="p-4 text-center text-xs text-gray-500">
                     {createdAt}
                   </td>
-                  <td className="p-4 text-center">{sales}</td>
+                  <td className="p-4 text-center">{numberOfSales}</td>
                   <td className="p-4 text-center">
                     {ingredientsCount > 0 ? (
                       <span
@@ -2105,9 +2101,9 @@ const SuccessToast = () => (
   return (
     <>
       <div className="flex min-h-screen bg-gradient-to-br from-[#FAF8F5] via-white to-[#F5F3F0] overflow-x-hidden">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col w-full md:ml-64">
-          <Navbar onToggleSidebar={() => setSidebarOpen(true)} />
+            <Navbar onToggleSidebar={() => setSidebarOpen(true)} />
           <main className="p-4 sm:p-6 space-y-6 overflow-x-hidden w-full min-h-screen">
             <motion.div
               initial={{ opacity: 0, y: -20 }}

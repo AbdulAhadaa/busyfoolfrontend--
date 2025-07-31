@@ -13,6 +13,7 @@ const unitOptions = ["ml", "L", "g", "kg", "unit"];
 
 export default function Stock() {
   // Cache for ingredient details by id
+   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [stockItems, setStockItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -177,15 +178,15 @@ export default function Stock() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <Sidebar />
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="md:pl-64 flex flex-col min-h-screen">
-        <Navbar />
+        <Navbar onToggleSidebar={() => setSidebarOpen(true)} />
         <main className="flex-1 p-4 sm:p-6 space-y-6">
           <div className="max-w-7xl mx-auto">
             {/* Header Section */}
         
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-shadow duration-200">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4">
@@ -232,7 +233,7 @@ export default function Stock() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
+            </div> */}
 
             {/* Message Display */}
             {message && (
@@ -271,7 +272,7 @@ export default function Stock() {
                         <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">Remaining Qty</th>
                         <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Purchased At</th>
                         <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Updated At</th>
-                        <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Actions</th>
+                        {/* <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Actions</th> */}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -286,12 +287,12 @@ export default function Stock() {
                         </tr>
                       ) : stockItems.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="px-6 py-12 text-center">
-                            <div className="flex flex-col items-center gap-3">
-                              <Package className="w-12 h-12 text-gray-300" />
-                              <div>
-                                <p className="text-gray-500 font-medium">No stock items found</p>
-                                <p className="text-gray-400 text-sm">Add your first stock item to get started</p>
+                          <td colSpan={6} className="px-6 py-12 text-center align-middle min-h-[300px]">
+                            <div className="flex flex-col items-center justify-center gap-3 min-h-[220px] h-full w-full">
+                              <Package className="w-12 h-12 text-gray-300 mb-2" />
+                              <div className="flex flex-col items-center">
+                                <p className="text-gray-500 font-medium text-center">No stock items found</p>
+                                <p className="text-gray-400 text-sm text-center">Add your first stock item to get started</p>
                               </div>
                             </div>
                           </td>
@@ -327,7 +328,7 @@ export default function Stock() {
                           <td className="px-6 py-4 text-right font-semibold text-gray-900">{item.remaining_quantity ?? '-'}</td>
                           <td className="px-6 py-4 text-center text-xs text-gray-700">{item.purchased_at ? new Date(item.purchased_at).toLocaleString() : '-'}</td>
                           <td className="px-6 py-4 text-center text-xs text-gray-700">{item.updated_at ? new Date(item.updated_at).toLocaleString() : '-'}</td>
-                          <td className="px-6 py-4 text-center">
+                          {/* <td className="px-6 py-4 text-center">
                             <Button 
                               size="sm" 
                               variant="outline" 
@@ -338,7 +339,7 @@ export default function Stock() {
                               <Edit3 className="w-3 h-3 mr-1" />
                               Edit
                             </Button>
-                          </td>
+                          </td> */}
                         </tr>
                       ))}
                     </tbody>
