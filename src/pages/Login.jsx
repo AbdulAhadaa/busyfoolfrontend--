@@ -71,7 +71,7 @@ export default function Login() {
               {showLoginToast ? <CheckCircle className="w-6 h-6 text-green-600" /> : <CheckCircle className="w-6 h-6 text-amber-600" />}
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-gray-900">{showLoginToast ? 'Success!' : 'Account Created'}</p>
+              <p className="font-semibold text-gray-900"></p>
               <p className="text-sm text-gray-700">{toastMsg}</p>
             </div>
             <button
