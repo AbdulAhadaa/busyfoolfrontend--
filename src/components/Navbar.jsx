@@ -220,7 +220,7 @@ const Navbar = ({ onToggleSidebar, isSidebarOpen = false }) => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem("accessToken");
-        const res = await fetch("http://168.231.74.35:3006/auth/profile", {
+        const res = await fetch("https://busy-fool-backend-1-0.onrender.com/auth/profile", {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

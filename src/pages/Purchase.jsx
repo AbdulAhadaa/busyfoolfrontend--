@@ -35,7 +35,7 @@ export default function Purchase() {
   const fetchIngredients = async () => {
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch("http://168.231.74.35:3006/ingredients", {
+      const res = await fetch("https://busy-fool-backend-1-0.onrender.com/ingredients", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -53,7 +53,7 @@ export default function Purchase() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch("http://168.231.74.35:3006/purchases", {
+      const res = await fetch("https://busy-fool-backend-1-0.onrender.com/purchases", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -91,7 +91,7 @@ export default function Purchase() {
         purchasePrice: Number(formData.purchasePrice),
         purchase_date: formData.purchase_date
       };
-      const res = await fetch("http://168.231.74.35:3006/purchases", {
+      const res = await fetch("https://busy-fool-backend-1-0.onrender.com/purchases", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)

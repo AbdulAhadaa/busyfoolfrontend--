@@ -19,7 +19,7 @@ export default function Dashboard() {
       const token = localStorage.getItem("accessToken");
       const params = new URLSearchParams({ startDate, endDate });
       const res = await fetch(
-        `http://168.231.74.35:3006/products/analytics/dashboard?${params.toString()}`,
+        `https://busy-fool-backend-1-0.onrender.com/products/analytics/dashboard?${params.toString()}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

@@ -10,6 +10,7 @@ import Sales from "./pages/Sales"
 import Dashboard from "./pages/Dashboard"
 import WhatIf from "./pages/WhatIf"
 
+
 // Helper to check if user is logged in
 function isLoggedIn() {
   return Boolean(localStorage.getItem("accessToken"));
@@ -86,6 +87,7 @@ function App() {
             <Dashboard />
           </ProtectedRoute>
         } />
+      
         <Route path="/what-if" element={
           <ProtectedRoute>
             <WhatIf />

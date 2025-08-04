@@ -24,7 +24,7 @@ export default function Login() {
   const onSubmit = async (data) => {
     setIsLoading(true)
     try {
-      const response = await fetch("http://168.231.74.35:3006/auth/login", {
+      const response = await fetch("https://busy-fool-backend-1-0.onrender.com/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

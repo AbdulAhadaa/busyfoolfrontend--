@@ -33,7 +33,7 @@ const WhatIfAnalyzer = () => {
   const fetchProducts = async () => {
     try {
       setError(null);
-      const response = await fetch('http://168.231.74.35:3006/products', {
+      const response = await fetch('https://busy-fool-backend-1-0.onrender.com/products', {
         method: 'GET',
         headers: getAuthHeaders()
       });
@@ -97,7 +97,7 @@ const WhatIfAnalyzer = () => {
     setError(null);
     
     try {
-      const response = await fetch('http://168.231.74.35:3006/products/what-if', {
+      const response = await fetch('https://busy-fool-backend-1-0.onrender.com/products/what-if', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -135,7 +135,7 @@ const WhatIfAnalyzer = () => {
   const applyQuickAction = async (productId, newPrice) => {
     try {
       setError(null);
-      const response = await fetch(`http://168.231.74.35:3006/products/${productId}/quick-action`, {
+      const response = await fetch(`https://busy-fool-backend-1-0.onrender.com/products/${productId}/quick-action`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
