@@ -21,8 +21,8 @@ const navItems = [
   { name: "Stock", icon: Package, path: "/stock" },
   { name: "Purchase", icon: ShoppingCart, path: "/purchases" },
   { name: "Sales", icon: Receipt, path: "/sales" },
-  { name: "Analytics", icon: BarChart3, path: "/dashboard" }
-    // { name: "My Profile", icon: BarChart3, path: "/profile" }
+  { name: "Analytics", icon: BarChart3, path: "/dashboard" },
+    { name: "My Profile", icon: BarChart3, path: "/profile" }
     // { name: "What-If", icon: BarChart3, path: "/what-if" },
 
 ]
