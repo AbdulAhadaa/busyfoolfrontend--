@@ -20,7 +20,7 @@ export default function Signup() {
   const onSubmit = async (data) => {
     setIsLoading(true)
     try {
-      const response = await fetch("http://localhost:3006/auth/register", {
+      const response = await fetch("http://168.231.74.35:3006/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

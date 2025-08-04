@@ -19,7 +19,7 @@ export default function Dashboard() {
       const token = localStorage.getItem("accessToken");
       const params = new URLSearchParams({ startDate, endDate });
       const res = await fetch(
-        `http://localhost:3006/products/analytics/dashboard?${params.toString()}`,
+        `http://168.231.74.35:3006/products/analytics/dashboard?${params.toString()}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

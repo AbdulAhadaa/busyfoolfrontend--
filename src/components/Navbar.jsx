@@ -220,7 +220,7 @@ const Navbar = ({ onToggleSidebar, isSidebarOpen = false }) => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem("accessToken");
-        const res = await fetch("http://localhost:3006/auth/profile", {
+        const res = await fetch("http://168.231.74.35:3006/auth/profile", {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {

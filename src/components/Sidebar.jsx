@@ -29,7 +29,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
    const handleLogout = async () => {
     const token = localStorage.getItem("accessToken");
     try {
-      await fetch("http://localhost:3006/auth/logout", {
+      await fetch("http://168.231.74.35:3006/auth/logout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

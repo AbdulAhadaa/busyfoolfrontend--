@@ -39,7 +39,7 @@ export default function Stock() {
   const fetchIngredients = async () => {
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch("http://localhost:3006/ingredients", {
+      const res = await fetch("http://168.231.74.35:3006/ingredients", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -57,7 +57,7 @@ export default function Stock() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch("http://localhost:3006/stock", {
+      const res = await fetch("http://168.231.74.35:3006/stock", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -77,7 +77,7 @@ export default function Stock() {
     setMessage("");
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch(`http://localhost:3006/stock/${id}`, {
+      const res = await fetch(`http://168.231.74.35:3006/stock/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -133,7 +133,7 @@ export default function Stock() {
           waste_percent: Number(formData.waste_percent),
           ingredientId: formData.ingredientId
         };
-        res = await fetch(`http://localhost:3006/stock/${editingStock}`, {
+        res = await fetch(`http://168.231.74.35:3006/stock/${editingStock}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload)
@@ -146,7 +146,7 @@ export default function Stock() {
           waste_percent: Number(formData.waste_percent),
           ingredientId: formData.ingredientId
         };
-        res = await fetch("http://localhost:3006/stock", {
+        res = await fetch("http://168.231.74.35:3006/stock", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload)

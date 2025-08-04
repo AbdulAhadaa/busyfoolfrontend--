@@ -12,7 +12,7 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       setError(null);
-      const response = await fetch('http://localhost:3006/api/dashboard');
+      const response = await fetch('http://168.231.74.35:3006/api/dashboard');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
