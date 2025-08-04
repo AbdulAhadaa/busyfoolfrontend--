@@ -39,7 +39,7 @@ export default function Stock() {
   const fetchIngredients = async () => {
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch("http://localhost:3000/ingredients", {
+      const res = await fetch("http://localhost:3006/ingredients", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -57,7 +57,7 @@ export default function Stock() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch("http://localhost:3000/stock", {
+      const res = await fetch("http://localhost:3006/stock", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -77,7 +77,7 @@ export default function Stock() {
     setMessage("");
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch(`http://localhost:3000/stock/${id}`, {
+      const res = await fetch(`http://localhost:3006/stock/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -133,7 +133,7 @@ export default function Stock() {
           waste_percent: Number(formData.waste_percent),
           ingredientId: formData.ingredientId
         };
-        res = await fetch(`http://localhost:3000/stock/${editingStock}`, {
+        res = await fetch(`http://localhost:3006/stock/${editingStock}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload)
@@ -146,7 +146,7 @@ export default function Stock() {
           waste_percent: Number(formData.waste_percent),
           ingredientId: formData.ingredientId
         };
-        res = await fetch("http://localhost:3000/stock", {
+        res = await fetch("http://localhost:3006/stock", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload)
@@ -173,7 +173,11 @@ export default function Stock() {
 
   // Calculate total stock value
   const totalStockValue = stockItems.reduce((total, item) => {
-    return total + (Number(item.purchase_price) * Number(item.purchased_quantity));
+    // Use total_purchased_price if available, else fallback
+    const value = item.total_purchased_price !== undefined && item.total_purchased_price !== null
+      ? Number(item.total_purchased_price)
+      : (Number(item.purchase_price_per_unit) * Number(item.purchased_quantity));
+    return total + (isNaN(value) ? 0 : value);
   }, 0);
 
   return (
@@ -268,6 +272,7 @@ export default function Stock() {
                         <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">Quantity</th>
                         <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Unit</th>
                         <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">Purchase Price</th>
+                        <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">Total Purchase Price</th>
                         <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">Waste %</th>
                         <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">Remaining Qty</th>
                         <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Purchased At</th>
@@ -313,7 +318,18 @@ export default function Stock() {
                               {item.unit}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-right font-semibold text-green-600">${Number(item.purchase_price).toFixed(2)}</td>
+                          <td className="px-6 py-4 text-right font-semibold text-green-600">
+                            {item.purchase_price_per_unit !== undefined && item.purchase_price_per_unit !== null
+                              ? `$${Number(item.purchase_price_per_unit).toFixed(2)}`
+                              : '-'}
+                          </td>
+                          <td className="px-6 py-4 text-right font-semibold text-blue-700">
+                            {item.total_purchased_price !== undefined && item.total_purchased_price !== null
+                              ? `$${Number(item.total_purchased_price).toFixed(2)}`
+                              : (item.purchase_price_per_unit !== undefined && item.purchase_price_per_unit !== null && item.purchased_quantity !== undefined && item.purchased_quantity !== null
+                                ? `$${(Number(item.purchase_price_per_unit) * Number(item.purchased_quantity)).toFixed(2)}`
+                                : '-')}
+                          </td>
                           <td className="px-6 py-4 text-right">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                               Number(item.waste_percent) > 15 

@@ -19,7 +19,7 @@ export default function Dashboard() {
       const token = localStorage.getItem("accessToken");
       const params = new URLSearchParams({ startDate, endDate });
       const res = await fetch(
-        `http://localhost:3000/products/analytics/dashboard?${params.toString()}`,
+        `http://localhost:3006/products/analytics/dashboard?${params.toString()}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -89,15 +89,15 @@ export default function Dashboard() {
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center">
                 <span className="text-lg text-gray-500">Total Revenue</span>
-                <span className="text-3xl font-bold text-green-700 mt-1">£{Number(data.revenue).toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                <span className="text-3xl font-bold text-green-700 mt-1">${Number(data.revenue).toLocaleString(undefined, {minimumFractionDigits:2})}</span>
               </div>
               <div className="flex flex-col items-center">
                 <span className="text-lg text-gray-500">Total Costs</span>
-                <span className="text-3xl font-bold text-red-600 mt-1">£{Number(data.costs).toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                <span className="text-3xl font-bold text-red-600 mt-1">${Number(data.costs).toLocaleString(undefined, {minimumFractionDigits:2})}</span>
               </div>
               <div className="flex flex-col items-center">
                 <span className="text-lg text-gray-500">Profit</span>
-                <span className="text-3xl font-bold text-[#6B4226] mt-1">£{Number(data.profit).toLocaleString(undefined, {minimumFractionDigits:2})}</span>
+                <span className="text-3xl font-bold text-[#6B4226] mt-1">${Number(data.profit).toLocaleString(undefined, {minimumFractionDigits:2})}</span>
                 <span className="text-sm text-gray-400">Profit Margin: {Number(data.profitMargin).toFixed(2)}%</span>
               </div>
             </div>
@@ -111,7 +111,7 @@ export default function Dashboard() {
                     {data.losingMoney.map((p) => (
                       <li key={p.name} className="text-red-700 font-medium flex items-center gap-2">
                         <span className="inline-block w-2 h-2 bg-red-500 rounded-full"></span>
-                        {p.name} <span className="text-xs text-gray-500">(£{Number(p.margin_amount).toFixed(2)}/unit loss)</span>
+                        {p.name} <span className="text-xs text-gray-500">(${Number(p.margin_amount).toFixed(2)}/unit loss)</span>
                       </li>
                     ))}
                   </ul>
@@ -126,7 +126,7 @@ export default function Dashboard() {
                     {data.winners.map((p) => (
                       <li key={p.name} className="text-green-700 font-medium flex items-center gap-2">
                         <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
-                        {p.name} <span className="text-xs text-gray-500">(£{Number(p.margin_amount).toFixed(2)}/unit profit)</span>
+                        {p.name} <span className="text-xs text-gray-500">(${Number(p.margin_amount).toFixed(2)}/unit profit)</span>
                       </li>
                     ))}
                   </ul>

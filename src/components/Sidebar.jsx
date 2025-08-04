@@ -22,12 +22,14 @@ const navItems = [
   { name: "Purchase", icon: ShoppingCart, path: "/purchases" },
   { name: "Sales", icon: Receipt, path: "/sales" },
   { name: "Analytics", icon: BarChart3, path: "/dashboard" },
+    // { name: "What-If", icon: BarChart3, path: "/what-if" },
+
 ]
 export const Sidebar = ({ isOpen, onClose }) => {
    const handleLogout = async () => {
     const token = localStorage.getItem("accessToken");
     try {
-      await fetch("http://localhost:3000/auth/logout", {
+      await fetch("http://localhost:3006/auth/logout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

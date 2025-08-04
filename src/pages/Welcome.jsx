@@ -1,596 +1,384 @@
-import React, { useState, useEffect } from "react"
-import { Sidebar } from "../components/Sidebar"
-import { Navbar } from "../components/Navbar"
+import React, { useState, useEffect } from 'react';
+import { RefreshCw, TrendingUp, TrendingDown, Package, DollarSign, BarChart3, ShoppingCart, AlertTriangle, CheckCircle, Coffee, Zap, Target } from 'lucide-react';
+import { Sidebar } from "../components/Sidebar";
+import { Navbar } from "../components/Navbar";
+const Dashboard = () => {
+     const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
 
-import { motion, AnimatePresence } from "framer-motion"
-import { 
-  ArrowDown, 
-  ArrowUp, 
-  Sparkles, 
-  Coffee, 
-  TrendingUp, 
-  TrendingDown,
-  AlertTriangle,
-  DollarSign,
-  Package,
-  Users,
-  Clock,
-  Target,
-  Lightbulb,
-  Star,
-  ChevronRight,
-  Info
-} from "lucide-react"
-
-export default function BusyFoolDashboard() {
-  const [activeTab, setActiveTab] = useState("losing")
-  const [currentSlide, setCurrentSlide] = useState(0)
-  const [showAlert, setShowAlert] = useState(true)
-  // Sidebar mobile state
- const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Enhanced business data based on the brief
-  const todaysSummary = {
-    revenue: 1847,
-    costs: 1426,
-    profit: 421,
-    profitMargin: 23,
-    transactions: 187,
-    avgTransaction: 9.87,
-    wasteValue: 23.40
-  }
-
-  const topAlerts = [
-    {
-      type: "price_increase",
-      message: "Oat milk supplier increased price by 15% - affects 12 products",
-      impact: "$47/day potential loss",
-      urgent: true
-    },
-    {
-      type: "missing_recipe",
-      message: "Found 23 sales of 'Maple Oat Latte' with no recipe defined",
-      impact: "Unknown margins",
-      urgent: false
+  const fetchData = async () => {
+    try {
+      setError(null);
+      const response = await fetch('http://localhost:3006/api/dashboard');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      console.error('Failed to fetch dashboard data:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-  ]
+  };
 
-  const detailedSections = {
-    losing: [
-      { 
-        name: "Rose Latte", 
-        loss: -0.47, 
-        soldToday: 23,
-        totalLoss: 10.81,
-        ingredients: ["Rose syrup ($0.25)", "Oat milk ($0.18)", "Coffee ($0.12)"],
-        sellPrice: 4.50,
-        cost: 4.97,
-        popularity: "High",
-        suggestion: "Remove edible flower (-$0.40) or raise price by $1"
-      },
-      { 
-        name: "Lavender Honey Latte", 
-        loss: -0.23, 
-        soldToday: 18,
-        totalLoss: 4.14,
-        ingredients: ["Lavender syrup ($0.15)", "Honey ($0.08)", "Whole milk ($0.12)"],
-        sellPrice: 4.20,
-        cost: 4.43,
-        popularity: "Medium",
-        suggestion: "Reduce lavender portion by 20% (-$0.03)"
-      },
-      { 
-        name: "Turmeric Golden Latte", 
-        loss: -0.35, 
-        soldToday: 12,
-        totalLoss: 4.20,
-        ingredients: ["Turmeric powder ($0.22)", "Coconut milk ($0.15)", "Honey ($0.08)"],
-        sellPrice: 4.80,
-        cost: 5.15,
-        popularity: "Low",
-        suggestion: "Consider discontinuing or raise to $5.50"
-      }
-    ],
-    winners: [
-      { 
-        name: "Cold Brew", 
-        profit: 3.20, 
-        soldToday: 34,
-        totalProfit: 108.80,
-        ingredients: ["Cold brew coffee ($0.45)", "Ice ($0.05)"],
-        sellPrice: 3.70,
-        cost: 0.50,
-        popularity: "Very High",
-        margin: 86.5,
-        suggestion: "Push this more - highest margin drink"
-      },
-      { 
-        name: "Flat White", 
-        profit: 2.10, 
-        soldToday: 45,
-        totalProfit: 94.50,
-        ingredients: ["Double shot ($0.24)", "Whole milk ($0.16)"],
-        sellPrice: 2.50,
-        cost: 0.40,
-        popularity: "Very High",
-        margin: 84.0,
-        suggestion: "Perfect profit margins - keep promoting"
-      },
-      { 
-        name: "Americano", 
-        profit: 1.85, 
-        soldToday: 28,
-        totalProfit: 51.80,
-        ingredients: ["Double shot ($0.24)", "Hot water ($0.01)"],
-        sellPrice: 2.10,
-        cost: 0.25,
-        popularity: "High",
-        margin: 88.1,
-        suggestion: "Consider upselling to larger size"
-      }
-    ],
-    quickwins: [
-      { 
-        name: "Standardize 'dollop' portions", 
-        tip: "Save $12-18/day on inconsistent portions",
-        effort: "Low",
-        impact: "Medium",
-        timeframe: "This week",
-        icon: Package
-      },
-      { 
-        name: "Reduce oat milk waste", 
-        tip: "Currently 15% waste - target 8%",
-        effort: "Medium",
-        impact: "High",
-        timeframe: "2 weeks",
-        icon: TrendingDown
-      },
-      { 
-        name: "Push Cold Brew at 3PM", 
-        tip: "86% margin vs 23% average",
-        effort: "Low",
-        impact: "High",
-        timeframe: "Today",
-        icon: TrendingUp
-      },
-      { 
-        name: "Smaller cup option for Rose Latte", 
-        tip: "Reduce ingredient cost by 25%",
-        effort: "Low",
-        impact: "Medium",
-        timeframe: "Next week",
-        icon: Coffee
-      }
-    ]
-  }
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+  };
 
-  const liveInsights = [
-    { 
-      title: "Matcha Coconut Latte", 
-      subtitle: "New recipe suggestion",
-      gain: "+$1.85 profit margin", 
-      confidence: 94,
-      description: "Based on trending ingredients & your supplier costs"
-    },
-    { 
-      title: "Iced Vanilla Cortado", 
-      subtitle: "Summer variant",
-      gain: "+$1.40 profit margin", 
-      confidence: 87,
-      description: "Cold drinks have 15% higher margins"
-    },
-    { 
-      title: "Cinnamon Oat Flat White", 
-      subtitle: "Upgrade existing winner",
-      gain: "+$0.65 profit boost", 
-      confidence: 91,
-      description: "Minimal cost increase, premium pricing opportunity"
-    }
-  ]
-
-  const wasteTracking = {
-    oatMilk: { bought: 40, used: 34, waste: 15, cost: 12.60 },
-    wholeMilk: { bought: 60, used: 57, waste: 5, cost: 8.40 },
-    syrups: { bought: 20, used: 18, waste: 10, cost: 15.20 }
-  }
-
-  // Auto-rotate insights
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % liveInsights.length)
-    }, 6000)
-    return () => clearInterval(interval)
-  }, [])
+    fetchData();
+  }, []);
 
-  const TabButton = ({ id, label, badge, active, onClick }) => (
-    <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      className={`text-sm font-medium px-4 py-3 rounded-xl transition-all duration-200 flex items-center gap-2 ${
-        active
-          ? "bg-[#6B4226] text-white shadow-lg"
-          : "text-[#6B4226] hover:bg-[#F5F2EE] bg-white border border-gray-200"
-      }`}
-    >
-      {label}
-      {badge && (
-        <span className={`text-xs px-2 py-0.5 rounded-full ${
-          active ? "bg-white/20 text-white" : "bg-red-100 text-red-600"
-        }`}>
-          {badge}
-        </span>
-      )}
-    </motion.button>
-  )
+ 
+const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
+  };
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'profitable': return 'text-green-600 bg-green-50 border-green-200';
+      case 'breaking even': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      case 'losing money': return 'text-red-600 bg-red-50 border-red-200';
+      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
+  };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br bg-white ">
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+  const getMarginColor = (margin) => {
+    if (margin >= 70) return 'text-green-600';
+    if (margin >= 40) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="md:pl-64 flex flex-col min-h-screen">
         <Navbar onToggleSidebar={() => setSidebarOpen(true)} />
         <main className="flex-1 p-4 sm:p-6 space-y-6">
-    <div className="min-h-screen bg-gradient-to-br from-[#FAF8F5] to-[#F5F2EE] p-4 sm:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-4xl font-bold text-[#6B4226] flex items-center gap-3">
-              <Coffee className="w-8 h-8" />
-              Today's Reality Check
-            </h1>
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Sunday, July 27, 2025</p>
-              <p className="text-xs text-gray-400">Live data · Updates every 5min</p>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-amber-200 border-t-amber-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg font-medium">Loading your coffee shop insights...</p>
+        </div>
+      </div>
+      </main>
+        </div>
+          </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Connection Error</h2>
+          <p className="text-gray-600 mb-6">Failed to connect to the API: {error}</p>
+          <button
+            onClick={fetchData}
+            className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="md:pl-64 flex flex-col min-h-screen">
+        <Navbar onToggleSidebar={() => setSidebarOpen(true)} />
+        <main className="flex-1 p-4 sm:p-6 space-y-6">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+   
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Reality Check Section */}
+        <div className="mb-8 animate-fade-in-up">
+          <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-2xl p-6 text-white shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center">
+                <Target className="h-6 w-6 mr-2" />
+                TODAY'S REALITY CHECK
+              </h2>
+              <div className="text-sm opacity-80">Live Data</div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold">{formatCurrency(data?.overview?.totalSales || 0)}</div>
+                <div className="text-sm opacity-80">Sales</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold">{formatCurrency(data?.overview?.totalPurchasesCost || 0)}</div>
+                <div className="text-sm opacity-80">Costs</div>
+              </div>
+              <div className="text-center">
+                <div className={`text-2xl font-bold ${data?.overview?.totalProfit >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                  {formatCurrency(data?.overview?.totalProfit || 0)}
+                </div>
+                <div className="text-sm opacity-80">Profit</div>
+              </div>
+              <div className="text-center">
+                <div className={`text-2xl font-bold ${getMarginColor(data?.overview?.avgMarginPercent || 0)}`}>
+                  {(data?.overview?.avgMarginPercent || 0).toFixed(1)}%
+                </div>
+                <div className="text-sm opacity-80">Margin</div>
+              </div>
             </div>
           </div>
-          <p className="text-gray-600">
-            Your coffee shop's true profitability revealed - including waste, customizations, and hidden costs.
-          </p>
-        </motion.div>
-
-        {/* Alert Banner */}
-        <AnimatePresence>
-          {showAlert && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-2xl p-4 mb-6"
-            >
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-orange-500 mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-orange-800 mb-1">Price Alert</h3>
-                  <p className="text-orange-700 text-sm mb-2">{topAlerts[0].message}</p>
-                  <p className="text-orange-600 text-xs font-medium">{topAlerts[0].impact}</p>
-                </div>
-                <button 
-                  onClick={() => setShowAlert(false)}
-                  className="text-orange-400 hover:text-orange-600"
-                >
-                  ×
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Enhanced Summary Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
-        >
-          {[
-            { 
-              label: "Revenue", 
-              value: todaysSummary.revenue, 
-              color: "text-[#6B4226]",
-              bgColor: "from-[#6B4226]/10 to-[#6B4226]/5",
-              icon: DollarSign,
-              subtitle: `${todaysSummary.transactions} transactions`,
-              change: "+12%"
-            },
-            { 
-              label: "True Costs", 
-              value: todaysSummary.costs, 
-              color: "text-orange-500",
-              bgColor: "from-orange-100 to-orange-50",
-              icon: Package,
-              subtitle: `Inc. $${todaysSummary.wasteValue} waste`,
-              change: "+8%"
-            },
-            { 
-              label: "Real Profit", 
-              value: todaysSummary.profit, 
-              color: "text-green-600",
-              bgColor: "from-green-100 to-green-50",
-              icon: TrendingUp,
-              subtitle: `${todaysSummary.profitMargin}% margin`,
-              change: "+15%"
-            },
-            { 
-              label: "Avg Transaction", 
-              value: todaysSummary.avgTransaction, 
-              color: "text-blue-600",
-              bgColor: "from-blue-100 to-blue-50",
-              icon: Users,
-              subtitle: "Per customer",
-              change: "+3%"
-            }
-          ].map((item, i) => (
-            <motion.div
-              key={i}
-              whileHover={{ y: -2 }}
-              className={`bg-gradient-to-br ${item.bgColor} p-6 rounded-2xl shadow-sm border border-white/50 backdrop-blur-sm`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <item.icon className={`w-6 h-6 ${item.color}`} />
-                <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">
-                  {item.change}
-                </span>
-              </div>
-              <p className="text-sm text-gray-600 mb-1">{item.label}</p>
-              <h3 className={`text-3xl font-bold ${item.color} mb-1`}>
-                ${typeof item.value === 'number' ? item.value.toFixed(2) : item.value}
-              </h3>
-              <p className="text-xs text-gray-500">{item.subtitle}</p>
-            </motion.div>
-          ))}
-        </motion.div>
-
-        {/* Enhanced Tab Navigation */}
-        <div className="flex gap-3 flex-wrap mb-6">
-          <TabButton
-            id="losing"
-            label="Losing Money"
-            badge="3"
-            active={activeTab === "losing"}
-            onClick={() => setActiveTab("losing")}
-          />
-          <TabButton
-            id="winners"
-            label="Your Winners"
-            active={activeTab === "winners"}
-            onClick={() => setActiveTab("winners")}
-          />
-          <TabButton
-            id="quickwins"
-            label="Quick Wins"
-            badge="4"
-            active={activeTab === "quickwins"}
-            onClick={() => setActiveTab("quickwins")}
-          />
         </div>
 
-        {/* Enhanced Product Cards */}
-        <motion.div
-          layout
-          className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mb-8"
-        >
-          <AnimatePresence mode="wait">
-            {detailedSections[activeTab].map((item, idx) => (
-              <motion.div
-                key={`${activeTab}-${idx}`}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: idx * 0.1 }}
-                whileHover={{ y: -4 }}
-                className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-bold text-[#6B4226] text-lg mb-1">{item.name}</h3>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Users className="w-4 h-4" />
-                      {activeTab === "losing" || activeTab === "winners" 
-                        ? `Sold today: ${item.soldToday}`
-                        : `Effort: ${item.effort}`
-                      }
+        {/* Key Metrics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 animate-fade-in-up" style={{animationDelay: '0.1s'}}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <ShoppingCart className="h-6 w-6 text-blue-600" />
+              </div>
+              <span className="text-2xl font-bold text-gray-900">{data?.analytics?.salesCount || 0}</span>
+            </div>
+            <h3 className="font-semibold text-gray-700">Total Sales</h3>
+            <p className="text-sm text-gray-500 mt-1">Items sold today</p>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 animate-fade-in-up" style={{animationDelay: '0.2s'}}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-green-50 rounded-lg">
+                <Package className="h-6 w-6 text-green-600" />
+              </div>
+              <span className="text-2xl font-bold text-gray-900">{data?.analytics?.totalStock?.toFixed(1) || 0}</span>
+            </div>
+            <h3 className="font-semibold text-gray-700">Total Stock</h3>
+            <p className="text-sm text-gray-500 mt-1">Units remaining</p>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 animate-fade-in-up" style={{animationDelay: '0.3s'}}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-amber-50 rounded-lg">
+                <BarChart3 className="h-6 w-6 text-amber-600" />
+              </div>
+              <span className="text-2xl font-bold text-gray-900">{data?.products?.length || 0}</span>
+            </div>
+            <h3 className="font-semibold text-gray-700">Products</h3>
+            <p className="text-sm text-gray-500 mt-1">In your menu</p>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 animate-fade-in-up" style={{animationDelay: '0.4s'}}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-purple-50 rounded-lg">
+                <AlertTriangle className="h-6 w-6 text-purple-600" />
+              </div>
+              <span className="text-2xl font-bold text-gray-900">{data?.analytics?.lowStockCount || 0}</span>
+            </div>
+            <h3 className="font-semibold text-gray-700">Low Stock</h3>
+            <p className="text-sm text-gray-500 mt-1">Items need restocking</p>
+          </div>
+        </div>
+
+        {/* Products & Analysis */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Products Section */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 animate-fade-in-up" style={{animationDelay: '0.5s'}}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                <Coffee className="h-5 w-5 mr-2 text-amber-600" />
+                Your Products
+              </h2>
+              <span className="text-sm text-gray-500">{data?.products?.length || 0} items</span>
+            </div>
+            <div className="space-y-4 max-h-80 overflow-y-auto">
+              {data?.products?.map((product, index) => (
+                <div key={product.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200" style={{animationDelay: `${0.6 + index * 0.1}s`}}>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 capitalize">{product.name}</h3>
+                    <div className="flex items-center space-x-4 mt-1">
+                      <span className="text-sm text-gray-600">Sell: {formatCurrency(product.sellPrice)}</span>
+                      <span className="text-sm text-gray-600">Cost: {formatCurrency(product.totalCost)}</span>
                     </div>
                   </div>
-
-                  {activeTab === "losing" && (
-                    <div className="text-right">
-                      <div className="text-red-500 font-bold flex items-center gap-1">
-                        <ArrowDown className="w-4 h-4" />
-                        ${Math.abs(item.loss).toFixed(2)}
-                      </div>
-                      <div className="text-xs text-red-400">
-                        -${item.totalLoss.toFixed(2)} today
-                      </div>
+                  <div className="text-right">
+                    <div className={`text-lg font-bold ${getMarginColor(product.margin)}`}>
+                      {product.margin.toFixed(1)}%
                     </div>
-                  )}
-
-                  {activeTab === "winners" && (
-                    <div className="text-right">
-                      <div className="text-green-600 font-bold flex items-center gap-1">
-                        <ArrowUp className="w-4 h-4" />
-                        ${item.profit.toFixed(2)}
-                      </div>
-                      <div className="text-xs text-green-400">
-                        +${item.totalProfit.toFixed(2)} today
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {item.margin.toFixed(1)}% margin
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "quickwins" && (
-                    <div className="flex items-center gap-2">
-                      <item.icon className="w-5 h-5 text-yellow-500" />
-                      <div className="text-right">
-                        <div className="text-xs text-gray-500">{item.timeframe}</div>
-                        <div className="text-xs font-medium text-green-600">{item.impact} impact</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {(activeTab === "losing" || activeTab === "winners") && (
-                  <div className="mb-4">
-                    <p className="text-xs text-gray-500 mb-2">Main ingredients:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {item.ingredients.slice(0, 3).map((ing, i) => (
-                        <span key={i} className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                          {ing.split(' (')[0]}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="border-t pt-3">
-                  <div className="flex items-start gap-2">
-                    <Lightbulb className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-gray-700 leading-relaxed">
-                      {item.suggestion || item.tip}
-                    </p>
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(product.status)}`}>
+                      {product.status}
+                    </span>
                   </div>
                 </div>
-
-                {(activeTab === "losing" || activeTab === "winners") && (
-                  <div className="mt-4 pt-3 border-t">
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>Sell: ${item.sellPrice.toFixed(2)}</span>
-                      <span>Cost: ${item.cost.toFixed(2)}</span>
-                      <span className={item.popularity === "Very High" ? "text-green-600" : 
-                                     item.popularity === "High" ? "text-blue-600" : 
-                                     item.popularity === "Medium" ? "text-yellow-600" : "text-red-600"}>
-                        {item.popularity}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
-
-        {/* Live Product Suggestions */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="space-y-6"
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-2xl font-bold text-[#6B4226] flex items-center gap-2">
-              <Sparkles className="w-6 h-6" />
-              AI-Powered Product Suggestions
-            </h3>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              Live suggestions
+              ))}
+              {(!data?.products || data.products.length === 0) && (
+                <div className="text-center py-8 text-gray-500">
+                  <Coffee className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No products found. Add your first product to get started!</p>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {liveInsights.map((suggestion, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * i }}
-                whileHover={{ scale: 1.02 }}
-                className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h4 className="font-bold text-[#6B4226] text-lg mb-1">{suggestion.title}</h4>
-                    <p className="text-sm text-gray-500">{suggestion.subtitle}</p>
+          {/* Ingredients Section */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 animate-fade-in-up" style={{animationDelay: '0.6s'}}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                <Package className="h-5 w-5 mr-2 text-green-600" />
+                Ingredients
+              </h2>
+              <span className="text-sm text-gray-500">{data?.ingredients?.length || 0} items</span>
+            </div>
+            <div className="space-y-4 max-h-80 overflow-y-auto">
+              {data?.ingredients?.map((ingredient, index) => (
+                <div key={ingredient.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200" style={{animationDelay: `${0.7 + index * 0.1}s`}}>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 capitalize">{ingredient.name}</h3>
+                    <div className="text-sm text-gray-600 mt-1">
+                      {ingredient.quantity} {ingredient.unit}
+                    </div>
                   </div>
-                  <Star className="w-5 h-5 text-yellow-500" />
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-gray-900">
+                      {formatCurrency(ingredient.purchasePrice)}
+                    </div>
+                    <div className="text-xs text-gray-500">Purchase price</div>
+                  </div>
                 </div>
+              ))}
+              {(!data?.ingredients || data.ingredients.length === 0) && (
+                <div className="text-center py-8 text-gray-500">
+                  <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No ingredients found. Add ingredients to track costs!</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
-                <div className="mb-4">
-                  <div className="text-green-600 font-bold text-lg mb-1">{suggestion.gain}</div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-gray-200 rounded-full h-2">
+        {/* Stock Brief & Suggestions */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Stock Brief */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 animate-fade-in-up" style={{animationDelay: '0.7s'}}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                <BarChart3 className="h-5 w-5 mr-2 text-blue-600" />
+                Stock Status
+              </h2>
+            </div>
+            <div className="space-y-4">
+              {data?.stockBrief?.map((stock, index) => {
+                const ingredient = data.ingredients.find(ing => ing.id === stock.ingredientId);
+                const usagePercent = ((stock.purchasedQuantity - stock.remainingQuantity) / stock.purchasedQuantity) * 100;
+                return (
+                  <div key={stock.id} className="p-4 bg-gray-50 rounded-lg" style={{animationDelay: `${0.8 + index * 0.1}s`}}>
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="font-medium text-gray-900 capitalize">{ingredient?.name}</h3>
+                      <span className="text-sm text-gray-600">{stock.remainingQuantity.toFixed(2)} {stock.unit} left</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
                       <div 
-                        className="bg-green-500 h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${suggestion.confidence}%` }}
+                        className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-1000" 
+                        style={{width: `${100 - usagePercent}%`}}
                       ></div>
                     </div>
-                    <span className="text-xs text-gray-500">{suggestion.confidence}%</span>
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Used: {(stock.purchasedQuantity - stock.remainingQuantity).toFixed(2)} {stock.unit}</span>
+                      <span>{(100 - usagePercent).toFixed(1)}% remaining</span>
+                    </div>
                   </div>
-                </div>
-
-                <p className="text-sm text-gray-600 mb-4">{suggestion.description}</p>
-
-                <button className="w-full bg-[#6B4226] text-white py-2 px-4 rounded-xl hover:bg-[#5A3620] transition-colors flex items-center justify-center gap-2 group">
-                  Test Recipe
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </button>
-              </motion.div>
-            ))}
+                );
+              })}
+            </div>
           </div>
-        </motion.div>
 
-        {/* Waste Tracking Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100"
-        >
-          <h3 className="text-xl font-bold text-[#6B4226] mb-4 flex items-center gap-2">
-            <Package className="w-5 h-5" />
-            Monthly Waste Reconciliation
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {Object.entries(wasteTracking).map(([item, data]) => (
-              <div key={item} className="bg-gray-50 p-4 rounded-xl">
-                <h4 className="font-semibold text-gray-800 mb-2 capitalize">
-                  {item.replace(/([A-Z])/g, ' $1').trim()}
-                </h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Bought:</span>
-                    <span>{data.bought}L</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Used:</span>
-                    <span>{data.used}L</span>
-                  </div>
-                  <div className="flex justify-between text-red-600">
-                    <span>Waste:</span>
-                    <span>{data.waste}% (${data.cost.toFixed(2)})</span>
+          {/* Smart Suggestions */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 animate-fade-in-up" style={{animationDelay: '0.8s'}}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                <Zap className="h-5 w-5 mr-2 text-yellow-600" />
+                Smart Suggestions
+              </h2>
+            </div>
+            <div className="space-y-4">
+              <div className="p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border border-green-200">
+                <div className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 mr-3" />
+                  <div>
+                    <h3 className="font-medium text-green-800">Stock Management</h3>
+                    <p className="text-sm text-green-700 mt-1">{data?.suggestions?.stockManagement}</p>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-          
-          <div className="mt-4 p-4 bg-blue-50 rounded-xl">
-            <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-blue-500 mt-0.5" />
-              <div>
-                <h4 className="font-semibold text-blue-800 mb-1">Intelligence Insight</h4>
-                <p className="text-blue-700 text-sm">
-                  You bought 40L oat milk but only sold 30L worth of drinks. 
-                  This suggests 25% waste - higher than the industry average of 15%.
-                </p>
+              
+              <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+                <div className="flex items-start">
+                  <DollarSign className="h-5 w-5 text-blue-600 mt-0.5 mr-3" />
+                  <div>
+                    <h3 className="font-medium text-blue-800">Price Optimization</h3>
+                    <p className="text-sm text-blue-700 mt-1">{data?.suggestions?.priceOptimization}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 bg-gradient-to-r from-amber-50 to-amber-100 rounded-lg border border-amber-200">
+                <div className="flex items-start">
+                  <TrendingUp className="h-5 w-5 text-amber-600 mt-0.5 mr-3" />
+                  <div>
+                    <h3 className="font-medium text-amber-800">Sales Boost</h3>
+                    <p className="text-sm text-amber-700 mt-1">{data?.suggestions?.salesBoost}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </motion.div>
-
+        </div>
       </div>
+
+      <style jsx>{`
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes fade-in-left {
+          from {
+            opacity: 0;
+            transform: translateX(-30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        .animate-fade-in-up {
+          animation: fade-in-up 0.6s ease-out forwards;
+        }
+        
+        .animate-fade-in-left {
+          animation: fade-in-left 0.8s ease-out forwards;
+        }
+      `}</style>
     </div>
     </main>
-    </div>
      </div>
-  )
-}
+      </div>
+  );
+};
+
+export default Dashboard;

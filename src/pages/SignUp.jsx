@@ -20,7 +20,7 @@ export default function Signup() {
   const onSubmit = async (data) => {
     setIsLoading(true)
     try {
-      const response = await fetch("http://localhost:3000/auth/register", {
+      const response = await fetch("http://localhost:3006/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -36,17 +36,15 @@ export default function Signup() {
       if (!response.ok) {
         const errorData = await response.json();
         alert(errorData.message || "Registration failed");
+        setIsLoading(false);
         return;
       }
 
-      const user = await response.json();
-      alert("Registration successful! Welcome, " + user.name);
-      // Optionally redirect to login or dashboard
-      // window.location.href = "/login";
+      // Registration successful, redirect to login page
+      window.location.href = "/login";
     } catch (error) {
       alert("An error occurred. Please try again.");
-    } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   };
 

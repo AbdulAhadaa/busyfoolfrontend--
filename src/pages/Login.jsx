@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Coffee, Mail, Lock, Eye, EyeOff, XCircle, ArrowRight, Shield } from "lucide-react"
+import { Coffee, Mail, Lock, Eye, EyeOff, XCircle, ArrowRight, Shield, CheckCircle } from "lucide-react"
 
 
 export default function Login() {
@@ -13,20 +13,7 @@ export default function Login() {
   const [toastMsg, setToastMsg] = useState("")
   const [showLoginToast, setShowLoginToast] = useState(false)
 
-  React.useEffect(() => {
-    if (localStorage.getItem("signupSuccess")) {
-      setToastMsg("Account created successfully! Please log in.");
-      setShowToast(true);
-      localStorage.removeItem("signupSuccess");
-      setTimeout(() => setShowToast(false), 4000);
-    }
-    if (localStorage.getItem("loginSuccess")) {
-      setToastMsg("Login successful! Redirecting...");
-      setShowLoginToast(true);
-      localStorage.removeItem("loginSuccess");
-      setTimeout(() => setShowLoginToast(false), 3000);
-    }
-  }, []);
+ 
 
   const {
     register,
@@ -37,7 +24,7 @@ export default function Login() {
   const onSubmit = async (data) => {
     setIsLoading(true)
     try {
-      const response = await fetch("http://localhost:3000/auth/login", {
+      const response = await fetch("http://localhost:3006/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -240,7 +227,7 @@ export default function Login() {
                 </div>
 
                 {/* Remember Me */}
-                <div className="flex items-center justify-between">
+                {/* <div className="flex items-center justify-between">
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <div className="relative">
                       <input
@@ -251,7 +238,7 @@ export default function Login() {
                     </div>
                     <span className="text-sm text-gray-600">Remember me</span>
                   </label>
-                </div>
+                </div> */}
 
                 {/* Submit Button */}
                 <Button

@@ -179,9 +179,9 @@ const getPageInfo = (currentPath) => {
   // Fallback for auth pages or unknown routes
   return {
     title: 'Dashboard',
-    subtitle: 'Welcome back!',
+   
     icon: Home,
-    breadcrumb: ['Home']
+  
   }
 }
 
@@ -216,26 +216,45 @@ const Navbar = ({ onToggleSidebar, isSidebarOpen = false }) => {
   }, [])
 
   useEffect(() => {
-    const fetchUser = async () => {
-      setLoadingUser(true)
+    setLoadingUser(true);
+    const fetchProfile = async () => {
       try {
-        // Simulating API call with dummy data since localStorage isn't available
-        await new Promise(resolve => setTimeout(resolve, 500))
-        setUserData({
-          name: "John Doe",
-          email: "john@example.com",
-          avatar: null,
-          role: "Administrator",
-          joinDate: "Member since Jan 2024",
-        })
+        const token = localStorage.getItem("accessToken");
+        const res = await fetch("http://localhost:3006/auth/profile", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUserData({
+            name: data.fullName || data.name || data.username || data.email || "-",
+            email: data.email || "-",
+            avatar: data.avatar || null,
+            role: data.role || "",
+            joinDate: data.joinDate || "",
+          });
+        } else {
+          // fallback to localStorage
+          const userStr = localStorage.getItem("user");
+          let user = null;
+          if (userStr) {
+            user = JSON.parse(userStr);
+          }
+          setUserData({
+            name: user?.name || user?.username || user?.email || "-",
+            email: user?.email || user?.username || user?.name || "-",
+            avatar: user?.avatar || null,
+            role: user?.role || "",
+            joinDate: user?.joinDate || "",
+          });
+        }
       } catch {
-        setUserData(null)
+        setUserData({ name: "-", email: "-" });
       } finally {
-        setLoadingUser(false)
+        setLoadingUser(false);
       }
-    }
-    fetchUser()
-  }, [])
+    };
+    fetchProfile();
+  }, []);
 
   const markAsRead = (id) => {
     setNotifications(prev => 
@@ -307,7 +326,7 @@ const Navbar = ({ onToggleSidebar, isSidebarOpen = false }) => {
                 </div>
                 
                 {/* Breadcrumb Navigation */}
-                <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 mb-1">
+                {/* <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 mb-1">
                   {pageInfo.breadcrumb.map((crumb, index) => (
                     <React.Fragment key={index}>
                       {index > 0 && <span className="mx-1">/</span>}
@@ -316,12 +335,12 @@ const Navbar = ({ onToggleSidebar, isSidebarOpen = false }) => {
                       </span>
                     </React.Fragment>
                   ))}
-                </div>
+                </div> */}
                 
                 {/* Subtitle */}
-                <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">
+                {/* <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">
                   {pageInfo.subtitle}
-                </p>
+                </p> */}
               </>
             )}
             

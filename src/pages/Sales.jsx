@@ -10,6 +10,29 @@ import { Navbar } from "../components/Navbar";
 import { Plus, Package, DollarSign, Calendar, AlertCircle, CheckCircle } from "lucide-react";
 
 export default function Sales() {
+  // Export sales to CSV
+  const exportSalesToCSV = () => {
+    if (!sales || sales.length === 0) return;
+    const headers = ["Product", "Quantity", "User"];
+    const csvRows = [
+      headers.join(","),
+      ...sales.map(sale => [
+        sale.product?.name ?? "",
+        sale.quantity ?? "",
+        sale.user?.name ?? ""
+      ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
+    ];
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "busy-fool-sales.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
      const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sales, setSales] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,7 +55,7 @@ export default function Sales() {
   const fetchProducts = async () => {
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch("http://localhost:3000/products", {
+      const res = await fetch("http://localhost:3006/products", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -50,7 +73,7 @@ export default function Sales() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch("http://localhost:3000/sales", {
+      const res = await fetch("http://localhost:3006/sales", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -85,7 +108,7 @@ export default function Sales() {
         product_name: selectedProduct?.name || "",
         quantity: Number(formData.quantity)
       };
-      const res = await fetch("http://localhost:3000/sales", {
+      const res = await fetch("http://localhost:3006/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)
@@ -97,9 +120,68 @@ export default function Sales() {
         setFormData({ productId: "", quantity: "" });
         fetchSales();
       } else {
-        const errorText = await res.text();
-        setMessage(`Failed to add sale. ${errorText}`);
+        let errorMsg = "Failed to add sale.";
+        try {
+          const contentType = res.headers.get("content-type") || "";
+          let errorJson = null;
+          if (contentType.includes("application/json")) {
+            errorJson = await res.json();
+          } else {
+            throw new Error("Not JSON");
+          }
+          // Custom handling for insufficient stock error
+          if (errorJson && errorJson.message && typeof errorJson.message === 'string' && errorJson.message.includes("Insufficient stock for ingredient")) {
+            // Extract ingredientId, available, needed from error message
+            const match = errorJson.message.match(/ingredient ([a-f0-9\-]+).*Available: ([\d.]+)([a-zA-Z]+), Needed: ([\d.]+)([a-zA-Z]+)/);
+            if (match) {
+              const [, ingredientId, available, availableUnit, needed, neededUnit] = match;
+              // Find ingredient name from products or sales (fallback to id)
+              let ingredientName = ingredientId;
+              // Try to find ingredient name from products list
+              for (const product of products) {
+                if (product.ingredients && Array.isArray(product.ingredients)) {
+                  for (const ing of product.ingredients) {
+                    if (ing.ingredientId === ingredientId || ing.id === ingredientId) {
+                      ingredientName = ing.name || ingredientId;
+                      break;
+                    }
+                  }
+                }
+              }
+              errorMsg = `Insufficient stock for ingredient: ${ingredientName}. Available: ${available}${availableUnit}, Needed: ${needed}${neededUnit}`;
+            } else {
+              errorMsg = errorJson.message;
+            }
+          } else if (errorJson && typeof errorJson.message === 'string') {
+            errorMsg = errorJson.message;
+          } else {
+            errorMsg = "Failed to add sale. Please try again.";
+          }
+        } catch (e) {
+          // fallback to text if not JSON
+          let errorText = "";
+          try {
+            errorText = await res.text();
+            // If errorText is a JSON string, try to parse and extract message
+            if (errorText.trim().startsWith("{") && errorText.trim().endsWith("}")) {
+              const parsed = JSON.parse(errorText);
+              if (parsed && typeof parsed.message === 'string') {
+                errorMsg = parsed.message;
+              } else {
+                errorMsg = errorText;
+              }
+            } else {
+              errorMsg = errorText;
+            }
+          } catch {
+            errorMsg = "Failed to add sale. Please try again.";
+          }
+        }
+        setMessage(errorMsg);
         setMessageType("error");
+        if (typeof window !== 'undefined' && errorMsg) {
+          window.alert(errorMsg);
+        }
       }
     } catch (err) {
       setMessage("Error adding sale.");
@@ -120,14 +202,24 @@ export default function Sales() {
                 <h1 className="text-3xl font-bold text-amber-900 tracking-tight">Sales</h1>
                 <p className="text-amber-700 mt-1 text-sm">Track and add your product sales</p>
               </div>
-              <Button
-                onClick={() => setShowModal(true)}
-                className="bg-gradient-to-r from-[#6B4226] to-[#5a3620] text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all shadow-sm"
-                disabled={isSubmitting}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Sale
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={exportSalesToCSV}
+                  className="bg-gradient-to-r from-[#4B5563] to-[#6B4226] text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all shadow-sm"
+                  type="button"
+                >
+                  <DollarSign className="w-4 h-4 mr-2" />
+                  Export CSV
+                </Button>
+                <Button
+                  onClick={() => setShowModal(true)}
+                  className="bg-gradient-to-r from-[#6B4226] to-[#5a3620] text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all shadow-sm"
+                  disabled={isSubmitting}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Sale
+                </Button>
+              </div>
             </div>
 
             {message && (
