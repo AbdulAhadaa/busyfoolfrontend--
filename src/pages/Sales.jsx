@@ -729,17 +729,14 @@ export default function Sales() {
   // Export sales to CSV (now includes amount if present)
   const exportSalesToCSV = () => {
     if (!sales || sales.length === 0) return
-    const headers = ["Product", "Quantity", "Unit Price", "Sale Price", "Amount", "User"]
+    const headers = ["Product", "Quantity", "User"]
     const csvRows = [
       headers.join(","),
       ...sales.map((sale) => {
         const product = sale.product?.name ?? sale.product_name ?? ""
         const qty = sale.quantity ?? sale.quantitySold ?? ""
-        const unit = sale.unitPrice ?? sale.unit_price ?? ""
-        const price = sale.sale_price ?? sale.salePrice ?? ""
-        const amt = sale.amount ?? (qty && (price || unit) ? Number(qty) * Number(price || unit) : "")
         const user = sale.user?.name ?? ""
-        return [product, qty, unit, price, amt, user]
+        return [product, qty, user]
           .map((val) => {
             const s = String(val ?? "")
             if (s.includes(",") || s.includes('"') || s.includes("\n")) return `"${s.replace(/"/g, '""')}"`
@@ -942,8 +939,7 @@ export default function Sales() {
     </Card>
   </div>
 ) : null}
-
-            <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+<Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
               <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
@@ -1007,7 +1003,7 @@ export default function Sales() {
                       <tr>
                         <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Product</th>
                         <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">Quantity</th>
-                       
+                        <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">Date</th>
                         <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">User</th>
                       </tr>
                     </thead>
@@ -1036,16 +1032,24 @@ export default function Sales() {
                       ) : (
                         paginatedSales.map((sale) => {
                           const product = sale.product?.name || sale.product_name || "-"
-                          const qty = sale.quantity ?? sale.quantitySold ?? "-"
-                        
-                          return (
-                            <tr key={sale.id} className="hover:bg-gray-50/50 transition-colors duration-150 bg-white">
-                              <td className="px-6 py-4 font-medium text-gray-900">{product}</td>
-                              <td className="px-6 py-4 text-right font-semibold text-gray-900">{qty}</td>
-                             
-                              <td className="px-6 py-4 text-center text-xs text-gray-700">{sale.user?.name || "-"}</td>
-                            </tr>
-                          )
+                          const qty = sale.quantity ?? sale.quantitySold ?? ""
+                          const date = sale.saleDate || sale.sale_date || sale.date
+                          let formattedDate;
+      if (date) {
+        formattedDate = new Date(date).toLocaleDateString();
+      } else {
+        // Show only today's date (not time) if no date is provided
+        const today = new Date();
+        formattedDate = today.toLocaleDateString();
+      }
+      return (
+        <tr key={sale.id} className="hover:bg-gray-50/50 transition-colors duration-150 bg-white">
+          <td className="px-6 py-4 font-medium text-gray-900">{product}</td>
+          <td className="px-6 py-4 text-right font-semibold text-gray-900">{qty}</td>
+          <td className="px-6 py-4 text-center text-xs text-gray-700">{formattedDate}</td>
+          <td className="px-6 py-4 text-center text-xs text-gray-700">{sale.user?.name || "-"}</td>
+        </tr>
+      )
                         })
                       )}
                     </tbody>
@@ -1660,7 +1664,7 @@ export default function Sales() {
                                 <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Quantity</th>
                                 <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Unit Price</th>
                               
-                                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Amount</th>
+                                <th className="px-4 py-3 text-right textsm font-semibold text-gray-700">Amount</th>
                               
                                 <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Profit</th>
                               </tr>
