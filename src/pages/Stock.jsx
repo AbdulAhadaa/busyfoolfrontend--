@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../components/ui/select";
 import { Sidebar } from "../components/Sidebar";
 import { Navbar } from "../components/Navbar";
-import { Plus, Edit3, Package, DollarSign, TrendingDown, Boxes, AlertCircle, CheckCircle } from "lucide-react";
+import { Plus, Edit3, Package, DollarSign, TrendingDown, Boxes, AlertCircle, CheckCircle,Calendar } from "lucide-react";
 
 const unitOptions = ["ml", "L", "g", "kg", "unit"];
 
@@ -24,6 +24,17 @@ export default function Stock() {
     purchase_price: "",
     waste_percent: ""
   });
+  // Add Purchase modal state
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [purchaseFormData, setPurchaseFormData] = useState({
+    ingredientId: "",
+    unit: "",
+    quantity: "",
+    purchasePrice: "",
+    purchase_date: ""
+  });
+  const [purchaseFormErrors, setPurchaseFormErrors] = useState({});
+  const [isPurchaseSubmitting, setIsPurchaseSubmitting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingStock, setEditingStock] = useState(null);
   const [formErrors, setFormErrors] = useState({});
@@ -39,7 +50,7 @@ export default function Stock() {
   const fetchIngredients = async () => {
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch("https://busy-fool-backend-1-0.onrender.com/ingredients", {
+      const res = await fetch("https://busy-fool-backend-2-0.onrender.com/ingredients", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -57,7 +68,7 @@ export default function Stock() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch("https://busy-fool-backend-1-0.onrender.com/stock", {
+      const res = await fetch("https://busy-fool-backend-2-0.onrender.com/stock", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -77,7 +88,7 @@ export default function Stock() {
     setMessage("");
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch(`https://busy-fool-backend-1-0.onrender.com/stock/${id}`, {
+      const res = await fetch(`https://busy-fool-backend-2-0.onrender.com/stock/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -133,7 +144,7 @@ export default function Stock() {
           waste_percent: Number(formData.waste_percent),
           ingredientId: formData.ingredientId
         };
-        res = await fetch(`https://busy-fool-backend-1-0.onrender.com/stock/${editingStock}`, {
+        res = await fetch(`https://busy-fool-backend-2-0.onrender.com/stock/${editingStock}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload)
@@ -146,7 +157,7 @@ export default function Stock() {
           waste_percent: Number(formData.waste_percent),
           ingredientId: formData.ingredientId
         };
-        res = await fetch("https://busy-fool-backend-1-0.onrender.com/stock", {
+        res = await fetch("https://busy-fool-backend-2-0.onrender.com/stock", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload)
@@ -256,6 +267,207 @@ export default function Stock() {
             )}
 
             {/* Main Table Card */}
+            <div className="flex gap-2 mb-6">
+             
+           <Button
+  onClick={() => setShowPurchaseModal(true)}
+  className="bg-gradient-to-r from-[#6B4226] to-[#5a3620] hover:from-[#5a3620] hover:to-[#4a2d1a] text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all shadow-sm"
+  disabled={isPurchaseSubmitting}
+>
+  <DollarSign className="w-4 h-4 mr-2" />
+  Add Purchase
+</Button>
+            </div>
+            {/* Add Purchase Modal */}
+            <Dialog open={showPurchaseModal} onOpenChange={open => !open && setShowPurchaseModal(false)}>
+              <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
+                <DialogHeader className="pb-6">
+                  <DialogTitle className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <DollarSign className="w-5 h-5 text-blue-600" />
+                    </div>
+                    Add Purchase
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6 py-4">
+                  {/* Ingredient Selection */}
+                  <div className="space-y-2">
+                    <Label htmlFor="purchase_ingredientId" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Package className="w-4 h-4" />
+                      Ingredient *
+                    </Label>
+                    <Select
+                      value={purchaseFormData.ingredientId}
+                      onValueChange={value => {
+                        const selected = ingredients.find(i => i.id === value);
+                        setPurchaseFormData(prev => ({
+                          ...prev,
+                          ingredientId: value,
+                          unit: selected?.unit || ""
+                        }));
+                      }}
+                    >
+                      <SelectTrigger className={`h-12 ${purchaseFormErrors.ingredientId ? "border-red-300 focus:ring-red-500" : "border-gray-300 focus:ring-amber-500 focus:border-amber-500"}`}>
+                        <SelectValue placeholder="Choose an ingredient..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ingredients.map(ingredient => (
+                          <SelectItem key={ingredient.id} value={ingredient.id} className="py-3">
+                            {ingredient.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {purchaseFormErrors.ingredientId && <p className="text-red-500 text-sm flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {purchaseFormErrors.ingredientId}
+                    </p>}
+                  </div>
+
+                  {/* Quantity and Unit */}
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="purchase_quantity" className="text-sm font-semibold text-gray-700">
+                        Quantity *
+                      </Label>
+                      <Input
+                        id="purchase_quantity"
+                        type="number"
+                        step="1"
+                        value={purchaseFormData.quantity}
+                        onChange={e => setPurchaseFormData(prev => ({ ...prev, quantity: e.target.value }))}
+                        placeholder="Enter quantity..."
+                        className={`h-12 ${purchaseFormErrors.quantity ? "border-red-300 focus:ring-red-500" : "border-gray-300 focus:ring-amber-500 focus:border-amber-500"}`}
+                      />
+                      {purchaseFormErrors.quantity && <p className="text-red-500 text-sm flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {purchaseFormErrors.quantity}
+                      </p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="purchase_unit" className="text-sm font-semibold text-gray-700">
+                        Unit *
+                      </Label>
+                      <Input
+                        id="purchase_unit"
+                        value={purchaseFormData.unit}
+                        readOnly
+                        className={`h-12 bg-gray-100 cursor-not-allowed ${purchaseFormErrors.unit ? "border-red-300 focus:ring-red-500" : "border-gray-300 focus:ring-amber-500 focus:border-amber-500"}`}
+                      />
+                      {purchaseFormErrors.unit && <p className="text-red-500 text-sm flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {purchaseFormErrors.unit}
+                      </p>}
+                    </div>
+                  </div>
+
+                  {/* Purchase Price */}
+                  <div className="space-y-2">
+                    <Label htmlFor="purchasePrice" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <DollarSign className="w-4 h-4" />
+                      Purchase Price ($) *
+                    </Label>
+                    <Input
+                      id="purchasePrice"
+                      type="number"
+                      step="0.01"
+                      value={purchaseFormData.purchasePrice}
+                      onChange={e => setPurchaseFormData(prev => ({ ...prev, purchasePrice: e.target.value }))}
+                      placeholder="0.00"
+                      className={`h-12 ${purchaseFormErrors.purchasePrice ? "border-red-300 focus:ring-red-500" : "border-gray-300 focus:ring-amber-500 focus:border-amber-500"}`}
+                    />
+                    {purchaseFormErrors.purchasePrice && <p className="text-red-500 text-sm flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {purchaseFormErrors.purchasePrice}
+                    </p>}
+                  </div>
+
+                  {/* Purchase Date */}
+                  <div className="space-y-2">
+                    <Label htmlFor="purchase_date" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Purchase Date *
+                    </Label>
+                    <Input
+                      id="purchase_date"
+                      type="datetime-local"
+                      value={purchaseFormData.purchase_date}
+                      onChange={e => setPurchaseFormData(prev => ({ ...prev, purchase_date: e.target.value }))}
+                      className={`h-12 ${purchaseFormErrors.purchase_date ? "border-red-300 focus:ring-red-500" : "border-gray-300 focus:ring-amber-500 focus:border-amber-500"}`}
+                    />
+                    {purchaseFormErrors.purchase_date && <p className="text-red-500 text-sm flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {purchaseFormErrors.purchase_date}
+                    </p>}
+                  </div>
+                </div>
+
+                <DialogFooter className="pt-6 gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowPurchaseModal(false)}
+                    disabled={isPurchaseSubmitting}
+                    className="px-6 py-2.5 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </Button>
+               <Button
+  onClick={async () => {
+    setIsPurchaseSubmitting(true);
+    setMessage("");
+    let errors = {};
+    if (!purchaseFormData.ingredientId) errors.ingredientId = "Required";
+    if (!purchaseFormData.unit) errors.unit = "Required";
+    if (!purchaseFormData.quantity) errors.quantity = "Required";
+    if (!purchaseFormData.purchasePrice) errors.purchasePrice = "Required";
+    if (!purchaseFormData.purchase_date) errors.purchase_date = "Required";
+    setPurchaseFormErrors(errors);
+    if (Object.keys(errors).length) {
+      setIsPurchaseSubmitting(false);
+      return;
+    }
+    try {
+      const token = localStorage.getItem("accessToken");
+      const payload = {
+        ingredientId: purchaseFormData.ingredientId,
+        unit: purchaseFormData.unit,
+        quantity: Number(purchaseFormData.quantity),
+        purchasePrice: Number(purchaseFormData.purchasePrice),
+        purchase_date: purchaseFormData.purchase_date
+      };
+      const res = await fetch("https://busy-fool-backend-2-0.onrender.com/purchases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        setMessage("Purchase added successfully.");
+        setMessageType("success");
+        setShowPurchaseModal(false);
+        setPurchaseFormData({ ingredientId: "", unit: "", quantity: "", purchasePrice: "", purchase_date: "" });
+        fetchStock(); // Optionally refresh stock
+      } else {
+        const errorText = await res.text();
+        setMessage(`Failed to add purchase. ${errorText}`);
+        setMessageType("error");
+      }
+    } catch (err) {
+      setMessage("Error adding purchase.");
+      setMessageType("error");
+    }
+    setIsPurchaseSubmitting(false);
+  }}
+  disabled={isPurchaseSubmitting}
+  className="bg-gradient-to-r from-[#6B4226] to-[#5a3620] hover:from-[#5a3620] hover:to-[#4a2d1a] text-white px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
+>
+  {isPurchaseSubmitting && (
+    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+  )}
+  {isPurchaseSubmitting ? "Processing..." : "Add Purchase"}
+</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
               <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100">
                 <CardTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">

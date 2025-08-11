@@ -231,7 +231,7 @@ export default function Products() {
       const token = localStorage.getItem("accessToken")
       try {
         // Fetch products
-        const productsRes = await fetch("https://busy-fool-backend-1-0.onrender.com/products", {
+        const productsRes = await fetch("https://busy-fool-backend-2-0.onrender.com/products", {
           headers: { Authorization: `Bearer ${token}` },
         })
         let productsData = []
@@ -240,7 +240,7 @@ export default function Products() {
         }
 
         // Fetch sales
-        const salesRes = await fetch("https://busy-fool-backend-1-0.onrender.com/sales", {
+        const salesRes = await fetch("https://busy-fool-backend-2-0.onrender.com/sales", {
           headers: { Authorization: `Bearer ${token}` },
         })
         let salesData = []
@@ -275,7 +275,7 @@ export default function Products() {
     const fetchIngredients = async () => {
       const token = localStorage.getItem("accessToken")
       try {
-        const response = await fetch("https://busy-fool-backend-1-0.onrender.com/ingredients", {
+        const response = await fetch("https://busy-fool-backend-2-0.onrender.com/ingredients", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -295,7 +295,7 @@ export default function Products() {
     const fetchStock = async () => {
       const token = localStorage.getItem("accessToken")
       try {
-        const response = await fetch("https://busy-fool-backend-1-0.onrender.com/stock", {
+        const response = await fetch("https://busy-fool-backend-2-0.onrender.com/stock", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -318,7 +318,7 @@ export default function Products() {
     setSimResult(null)
     try {
       const token = localStorage.getItem("accessToken")
-      const res = await fetch("https://busy-fool-backend-1-0.onrender.com/products/what-if", {
+      const res = await fetch("https://busy-fool-backend-2-0.onrender.com/products/what-if", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -402,7 +402,7 @@ export default function Products() {
 
       try {
         const token = localStorage.getItem("accessToken")
-        const res = await fetch("https://busy-fool-backend-1-0.onrender.com/products/milk-swap", {
+        const res = await fetch("https://busy-fool-backend-2-0.onrender.com/products/milk-swap", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -736,7 +736,7 @@ export default function Products() {
 
       try {
         const token = localStorage.getItem("accessToken")
-        const res = await fetch(`https://busy-fool-backend-1-0.onrender.com/products/${whatIfProduct.id}/quick-action`, {
+        const res = await fetch(`https://busy-fool-backend-2-0.onrender.com/products/${whatIfProduct.id}/quick-action`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -1077,7 +1077,7 @@ export default function Products() {
     const token = localStorage.getItem("accessToken")
     if (!window.confirm("Are you sure you want to delete this product?")) return
     try {
-      const response = await fetch(`https://busy-fool-backend-1-0.onrender.com/products/${id}`, {
+      const response = await fetch(`https://busy-fool-backend-2-0.onrender.com/products/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -1175,7 +1175,7 @@ export default function Products() {
       ingredients: selectedIngredients,
     }
     try {
-      const response = await fetch(`https://busy-fool-backend-1-0.onrender.com/products/${selectedProduct.id}`, {
+      const response = await fetch(`https://busy-fool-backend-2-0.onrender.com/products/${selectedProduct.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -1506,7 +1506,7 @@ export default function Products() {
         ingredients: selectedIngredients,
       }
       try {
-        const response = await fetch(`https://busy-fool-backend-1-0.onrender.com/products/${selectedProduct.id}`, {
+        const response = await fetch(`https://busy-fool-backend-2-0.onrender.com/products/${selectedProduct.id}`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
@@ -1646,7 +1646,7 @@ export default function Products() {
       ingredients: selectedIngredients,
     }
     try {
-      const response = await fetch("https://busy-fool-backend-1-0.onrender.com/products", {
+      const response = await fetch("https://busy-fool-backend-2-0.onrender.com/products", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2148,7 +2148,7 @@ export default function Products() {
         ingredients: selectedIngredients,
       }
       try {
-        const response = await fetch("https://busy-fool-backend-1-0.onrender.com/products", {
+        const response = await fetch("https://busy-fool-backend-2-0.onrender.com/products", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -2653,7 +2653,7 @@ export default function Products() {
     const token = localStorage.getItem("accessToken")
     if (!window.confirm("Are you sure you want to delete this ingredient?")) return
     try {
-      const response = await fetch(`https://busy-fool-backend-1-0.onrender.com/ingredients/${id}`, {
+      const response = await fetch(`https://busy-fool-backend-2-0.onrender.com/ingredients/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -2681,7 +2681,7 @@ export default function Products() {
   const handleSaveIngredient = async (id) => {
     const token = localStorage.getItem("accessToken")
     try {
-      const response = await fetch(`https://busy-fool-backend-1-0.onrender.com/ingredients/${id}`, {
+      const response = await fetch(`https://busy-fool-backend-2-0.onrender.com/ingredients/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

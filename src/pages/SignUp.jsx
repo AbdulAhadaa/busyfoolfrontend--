@@ -20,7 +20,7 @@ export default function Signup() {
   const onSubmit = async (data) => {
     setIsLoading(true)
     try {
-      const response = await fetch("https://busy-fool-backend-1-0.onrender.com/auth/register", {
+      const response = await fetch("https://busy-fool-backend-2-0.onrender.com/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -38,6 +38,11 @@ export default function Signup() {
         alert(errorData.message || "Registration failed");
         setIsLoading(false);
         return;
+      }
+
+      const user = await response.json();
+      if (user.id) {
+        localStorage.setItem("userId", user.id);
       }
 
       // Registration successful, redirect to login page
@@ -120,7 +125,7 @@ export default function Signup() {
                 <p className="text-gray-600">Join thousands of coffee shop owners</p>
               </div>
 
-              <div className="space-y-6">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 {/* Name Field */}
                 <div className="group">
                   <Label htmlFor="name" className="text-gray-700 font-medium mb-2 block">
@@ -249,7 +254,7 @@ export default function Signup() {
 
                 {/* Submit Button */}
                 <Button
-                  onClick={handleSubmit(onSubmit)}
+                  type="submit"
                   disabled={isLoading}
                   className="w-full h-14 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-lg font-semibold rounded-xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
@@ -262,7 +267,7 @@ export default function Signup() {
                     "Create Account"
                   )}
                 </Button>
-              </div>
+              </form>
 
               {/* Terms */}
               <p className="text-center text-sm text-gray-500 mt-6">

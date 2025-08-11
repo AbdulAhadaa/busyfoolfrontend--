@@ -35,7 +35,7 @@ export default function Purchase() {
   const fetchIngredients = async () => {
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch("https://busy-fool-backend-1-0.onrender.com/ingredients", {
+      const res = await fetch("https://busy-fool-backend-2-0.onrender.com/ingredients", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -53,7 +53,7 @@ export default function Purchase() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch("https://busy-fool-backend-1-0.onrender.com/purchases", {
+      const res = await fetch("https://busy-fool-backend-2-0.onrender.com/purchases", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -91,7 +91,7 @@ export default function Purchase() {
         purchasePrice: Number(formData.purchasePrice),
         purchase_date: formData.purchase_date
       };
-      const res = await fetch("https://busy-fool-backend-1-0.onrender.com/purchases", {
+      const res = await fetch("https://busy-fool-backend-2-0.onrender.com/purchases", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)
@@ -116,7 +116,7 @@ export default function Purchase() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-   <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="md:pl-64 flex flex-col min-h-screen">
       <Navbar onToggleSidebar={() => setSidebarOpen(true)} />
         <main className="flex-1 p-4 sm:p-6 space-y-6">
@@ -126,14 +126,17 @@ export default function Purchase() {
                 <h1 className="text-3xl font-bold text-amber-900 tracking-tight">Purchases</h1>
                 <p className="text-amber-700 mt-1 text-sm">Track and add your ingredient purchases</p>
               </div>
-              <Button
-                onClick={() => setShowModal(true)}
-                className="bg-gradient-to-r from-[#6B4226] to-[#5a3620] text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all shadow-sm"
-                disabled={isSubmitting}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Purchase
-              </Button>
+<button
+  onClick={() => setShowModal(true)}
+  disabled={isSubmitting}
+  className="bg-[#6B4226] hover:bg-[#7a4d2c] text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all shadow-sm"
+>
+  <Plus className="w-4 h-4 mr-2" />
+  Add Purchase
+</button>
+
+
+
             </div>
 
             {message && (
@@ -337,17 +340,17 @@ export default function Purchase() {
 
                 <DialogFooter className="pt-6 gap-3">
                   <Button
-                    variant="outline"
-                    onClick={() => setShowModal(false)}
-                    disabled={isSubmitting}
-                    className="px-6 py-2.5 hover:bg-gray-50"
+                      variant="outline"
+                      onClick={() => setShowModal(false)}
+                      disabled={isSubmitting}
+                      className="bg-[#6B4226] hover:bg-[#7a4d2c] text-white px-6 py-2.5 rounded-xl shadow-sm"
                   >
                     Cancel
                   </Button>
                   <Button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-6 py-2.5 shadow-lg hover:shadow-xl transition-all duration-200"
+                      onClick={handleSubmit}
+                      disabled={isSubmitting}
+                      className="bg-[#6B4226] hover:bg-[#7a4d2c] text-white px-6 py-2.5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
                   >
                     {isSubmitting && (
                       <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>

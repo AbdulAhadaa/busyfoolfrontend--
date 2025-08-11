@@ -8,7 +8,9 @@ import Stock from "./pages/Stock.jsx"
 import Purchase from "./pages/Purchase"
 import Sales from "./pages/Sales"
 import Dashboard from "./pages/Dashboard"
-import WhatIf from "./pages/WhatIf"
+
+import DragDropCSVPopup from "./components/DragDropCSVPopup"
+import DailySales from "./pages/DailySales"
 
 
 
@@ -58,6 +60,17 @@ function App() {
             <Welcome />
           </ProtectedRoute>
         } />
+        <Route path="/mapper" element={
+          <ProtectedRoute>
+            <DragDropCSVPopup />
+          </ProtectedRoute>
+        } />
+        <Route path="/dailysales" element={
+          <ProtectedRoute>
+            <DailySales />
+          </ProtectedRoute>
+        } />
+    
     
         <Route path="/products" element={
           <ProtectedRoute>
@@ -90,12 +103,7 @@ function App() {
           </ProtectedRoute>
         } />
       
-        <Route path="/what-if" element={
-          <ProtectedRoute>
-            <WhatIf />
-          </ProtectedRoute>
-        } />
-
+       
         {/* Catch-all: redirect to root */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

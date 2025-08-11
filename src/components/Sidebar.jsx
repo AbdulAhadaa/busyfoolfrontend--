@@ -19,9 +19,10 @@ const navItems = [
   { name: "Products", icon: Coffee, path: "/products" },
   { name: "Ingredients", icon: Leaf, path: "/ingredients" },
   { name: "Stock", icon: Package, path: "/stock" },
-  { name: "Purchase", icon: ShoppingCart, path: "/purchases" },
+
   { name: "Sales", icon: Receipt, path: "/sales" },
-  { name: "Analytics", icon: BarChart3, path: "/dashboard" },
+  //  { name: "Daily Sales", icon: Receipt, path: "/dailysales" },
+ 
     // { name: "My Profile", icon: BarChart3, path: "/profile" }
     // { name: "What-If", icon: BarChart3, path: "/what-if" },
 
@@ -30,7 +31,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
    const handleLogout = async () => {
     const token = localStorage.getItem("accessToken");
     try {
-      await fetch("https://busy-fool-backend-1-0.onrender.com/auth/logout", {
+      await fetch("https://busy-fool-backend-2-0.onrender.com/auth/logout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

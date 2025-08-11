@@ -85,7 +85,7 @@ export default function BusyFoolIngredients() {
       setIsLoading(true)
       const token = localStorage.getItem("accessToken")
       try {
-        const response = await fetch("https://busy-fool-backend-1-0.onrender.com/ingredients", {
+        const response = await fetch("https://busy-fool-backend-2-0.onrender.com/ingredients", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -178,7 +178,7 @@ export default function BusyFoolIngredients() {
       let response, updatedIngredient
       if (editingIngredient) {
         // PATCH for editing
-        response = await fetch(`https://busy-fool-backend-1-0.onrender.com/ingredients/${editingIngredient.id}`, {
+        response = await fetch(`https://busy-fool-backend-2-0.onrender.com/ingredients/${editingIngredient.id}`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
@@ -198,7 +198,7 @@ export default function BusyFoolIngredients() {
         }
       } else {
         // POST for adding
-        response = await fetch("https://busy-fool-backend-1-0.onrender.com/ingredients", {
+        response = await fetch("https://busy-fool-backend-2-0.onrender.com/ingredients", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -268,7 +268,7 @@ export default function BusyFoolIngredients() {
       setIsSubmitting(true)
       const token = localStorage.getItem("accessToken")
       try {
-        await fetch(`https://busy-fool-backend-1-0.onrender.com/ingredients/${id}`, {
+        await fetch(`https://busy-fool-backend-2-0.onrender.com/ingredients/${id}`, {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -341,7 +341,7 @@ export default function BusyFoolIngredients() {
     formData.append("file", file)
 
     try {
-      const response = await fetch("https://busy-fool-backend-1-0.onrender.com/ingredients/import-csv", {
+      const response = await fetch("https://busy-fool-backend-2-0.onrender.com/ingredients/import-csv", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -414,7 +414,7 @@ export default function BusyFoolIngredients() {
                   {/* Export CSV Button */}
                   <Button
                     onClick={exportToCSV}
-                    className="w-full sm:w-auto bg-gradient-to-r from-[#4B5563] to-[#6B4226] text-white px-6 py-2 rounded-xl flex items-center justify-center gap-2 hover:shadow-lg transition-all shadow-sm"
+                    className="w-full sm:w-auto bg-gradient-to-r from-[#6B4226] to-[#5a3620] text-white px-6 py-2 rounded-xl flex items-center justify-center gap-2 hover:shadow-lg transition-all shadow-sm"
                     disabled={isSubmitting}
                     type="button"
                   >

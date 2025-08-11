@@ -12,7 +12,7 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       setError(null);
-      const response = await fetch('https://busy-fool-backend-1-0.onrender.com/api/dashboard');
+      const response = await fetch('https://busy-fool-backend-2-0.onrender.com/api/dashboard');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -112,7 +112,7 @@ const formatCurrency = (amount) => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold flex items-center">
                 <Target className="h-6 w-6 mr-2" />
-                TODAY'S REALITY CHECK
+                 Reality Check Dashboard
               </h2>
               <div className="text-sm opacity-80">Live Data</div>
             </div>
