@@ -1482,6 +1482,7 @@ export default function Products() {
     }
 
     const handleSubmit = async () => {
+      setShowEditProduct(false); // Close modal immediately
       setError("")
       setIsSubmitting(true)
       const token = localStorage.getItem("accessToken")
@@ -1517,7 +1518,6 @@ export default function Products() {
         if (response.ok) {
           const updated = await response.json()
           setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
-          setShowEditProduct(false)
           setSelectedProduct(null)
           setSuccess(true)
           setTimeout(() => {
@@ -2128,6 +2128,7 @@ export default function Products() {
     }
 
     const handleSubmit = async () => {
+      setShowAddProduct(false); // Close modal immediately
       setError("")
       setIsSubmitting(true)
       const token = localStorage.getItem("accessToken")
@@ -2165,7 +2166,6 @@ export default function Products() {
             sell_price: "",
             ingredients: [],
           })
-          setShowAddProduct(false)
           setShowSuccessToast(true)
           setTimeout(() => {
             setShowSuccessToast(false)
@@ -2702,120 +2702,63 @@ export default function Products() {
     }
   }
 
-  const IngredientsTable = () => (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
-      <h2 className="text-xl font-bold mb-4">Ingredients</h2>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-            <tr>
-              <th className="p-3 text-left">Name</th>
-              <th className="p-3 text-left">Unit</th>
-              <th className="p-3 text-right">Cost per Unit</th>
-              <th className="p-3 text-right">Cost per mL</th>
-              <th className="p-3 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ingredients.map((ingredient) => (
-              <tr key={ingredient.id} className="border-b border-gray-100">
-                <td className="p-3">
-                  {editingIngredient === ingredient.id ? (
-                    <input
-                      value={ingredientEditData.name}
-                      onChange={(e) =>
-                        setIngredientEditData((d) => ({
-                          ...d,
-                          name: e.target.value,
-                        }))
-                      }
-                      className="border px-2 py-1 rounded w-full"
-                    />
-                  ) : (
-                    ingredient.name
-                  )}
-                </td>
-                <td className="p-3">
-                  {editingIngredient === ingredient.id ? (
-                    <input
-                      value={ingredientEditData.unit}
-                      onChange={(e) =>
-                        setIngredientEditData((d) => ({
-                          ...d,
-                          unit: e.target.value,
-                        }))
-                      }
-                      className="border px-2 py-1 rounded w-full"
-                    />
-                  ) : (
-                    ingredient.unit
-                  )}
-                </td>
-                <td className="p-3 text-right">
-                  {editingIngredient === ingredient.id ? (
-                    <input
-                      type="number"
-                      value={ingredientEditData.cost_per_unit}
-                      onChange={(e) =>
-                        setIngredientEditData((d) => ({
-                          ...d,
-                          cost_per_unit: e.target.value,
-                        }))
-                      }
-                      className="border px-2 py-1 rounded w-full"
-                    />
-                  ) : (
-                    `$${Number(ingredient.cost_per_unit || 0).toFixed(2)}`
-                  )}
-                </td>
-                <td className="p-3 text-right">
-                  {editingIngredient === ingredient.id ? (
-                    <input
-                      type="number"
-                      value={ingredientEditData.cost_per_ml}
-                      onChange={(e) =>
-                        setIngredientEditData((d) => ({
-                          ...d,
-                          cost_per_ml: e.target.value,
-                        }))
-                      }
-                      className="border px-2 py-1 rounded w-full"
-                    />
-                  ) : (
-                    `$${Number(ingredient.cost_per_ml || 0).toFixed(4)}`
-                  )}
-                </td>
-                <td className="p-3 text-center">
-                  {editingIngredient === ingredient.id ? (
-                    <>
-                      <button
-                        onClick={() => handleSaveIngredient(ingredient.id)}
-                        className="text-green-600 font-bold mr-2"
-                      >
-                        Save
-                      </button>
-                      <button onClick={() => setEditingIngredient(null)} className="text-gray-500">
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button onClick={() => handleEditIngredient(ingredient)} className="text-blue-600 font-bold mr-2">
-                        Edit
-                      </button>
-                      <button onClick={() => handleDeleteIngredient(ingredient.id)} className="text-red-600 font-bold">
-                        Delete
-                      </button>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
+    const handleSubmit = async () => {
+      setShowEditProduct(false); // Close modal immediately
+      setError("")
+      setIsSubmitting(true)
+      const token = localStorage.getItem("accessToken")
+      // Deduplicate and map ingredients to backend schema
+      const seen = new Set()
+      const selectedIngredients = localForm.ingredients
+        .filter((ing) => {
+          if (!ing.id || seen.has(ing.id)) return false
+          seen.add(ing.id)
+          return true
+        })
+        .map((ing) => ({
+          ingredientId: ing.id,
+          quantity: Number(ing.selectedQuantity ?? ing.quantity ?? 1),
+          unit: ing.selectedUnit || ing.unit,
+          is_optional: !!ing.is_optional,
+        }))
+      const payload = {
+        name: localForm.name,
+        category: localForm.category,
+        sell_price: Number.parseFloat(localForm.sell_price),
+        ingredients: selectedIngredients,
+      }
+      try {
+        const response = await fetch(`https://busy-fool-backend-2-0.onrender.com/products/${selectedProduct.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        })
+        if (response.ok) {
+          const updated = await response.json()
+          setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+          setSelectedProduct(null)
+          setSuccess(true)
+          setTimeout(() => {
+            setSuccess(false)
+          }, 1200)
+        } else {
+          const errorData = await response.json()
+          // Use enhanced error handling
+          if (!handleApiError(errorData, response)) {
+            setError(errorData.message || "Failed to update product")
+          }
+        }
+      } catch (error) {
+        console.error("Edit product error:", error)
+        setError("An error occurred. Please try again.")
+      }
+      setIsSubmitting(false)
+    }
+// ...existing code...
+// (Removed stray code from previous patch. TableView and other components should be wrapped in a single parent element.)
 
   // --- Main Render ---
   return (
