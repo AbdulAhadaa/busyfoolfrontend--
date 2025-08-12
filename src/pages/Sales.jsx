@@ -1325,8 +1325,7 @@ export default function Sales() {
           </div>
           <div className="flex gap-3">
             <span className="px-3 py-2 bg-teal-100 text-teal-800 rounded-lg text-sm font-semibold">.csv</span>
-            <span className="px-3 py-2 bg-teal-100 text-teal-800 rounded-lg text-sm font-semibold">.xlsx</span>
-          </div>
+         </div> 
         </CardContent>
       </Card>
 
