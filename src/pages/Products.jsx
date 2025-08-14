@@ -5,7 +5,6 @@ import { Sidebar } from "../components/Sidebar"
 import { Navbar } from "../components/Navbar"
 import { motion, AnimatePresence } from "framer-motion"
 
-// ...removed framer-motion imports...
 import {
   Plus,
   Search,
@@ -2285,7 +2284,7 @@ export default function Products() {
     handleAddProduct,
   ])
 
-  // Enhanced Product Card with loading state - MEMOIZED to prevent re-renders
+  // Enhanced Product Card with loading state - MEMOIZED to prevent re-renders and FIXED animations
   const EnhancedProductCard = React.memo(({ product }) => {
     // Show/hide ingredients dropdown
     const [showIngredients, setShowIngredients] = useState(false)
@@ -2319,14 +2318,15 @@ export default function Products() {
     const numberOfSales = Number(product.numberOfSales) || 0
 
     return (
-      <motion.div
-        layout
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        whileHover={{ y: -4, shadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
+      <div
         className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 group relative ${
           isBeingEdited ? "ring-2 ring-blue-500 ring-opacity-50" : ""
         }`}
+        style={{
+          // FIXED: Use transform instead of layout animations to prevent card movement
+          transform: isBeingEdited ? "scale(0.98)" : "scale(1)",
+          transition: "transform 0.2s ease-in-out, box-shadow 0.3s ease",
+        }}
       >
         {/* Enhanced Loading overlay for editing state */}
         <AnimatePresence>
@@ -2604,7 +2604,7 @@ export default function Products() {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     )
   })
 
@@ -2851,7 +2851,7 @@ export default function Products() {
                   value: products.length,
                   color: "from-[#6B4226] to-[#5a3620]",
                   bgColor: "from-[#6B4226]/10 to-[#5a3620]/10",
-                  change: "+2 this week",
+            
                 },
                 {
                   icon: TrendingUp,
@@ -2859,7 +2859,7 @@ export default function Products() {
                   value: products.filter((p) => p.status === "profitable").length,
                   color: "from-green-600 to-green-700",
                   bgColor: "from-green-50 to-emerald-50",
-                  change: "+1 today",
+                  
                 },
                 {
                   icon: AlertCircle,
