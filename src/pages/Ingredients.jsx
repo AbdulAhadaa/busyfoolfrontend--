@@ -85,7 +85,7 @@ export default function BusyFoolIngredients() {
       setIsLoading(true)
       const token = localStorage.getItem("accessToken")
       try {
-        const response = await fetch("https://busy-fool-backend-2-0.onrender.com/ingredients", {
+        const response = await fetch("https://busy-fool-backend.vercel.app/ingredients", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -178,7 +178,7 @@ export default function BusyFoolIngredients() {
       let response, updatedIngredient
       if (editingIngredient) {
         // PATCH for editing
-        response = await fetch(`https://busy-fool-backend-2-0.onrender.com/ingredients/${editingIngredient.id}`, {
+        response = await fetch(`https://busy-fool-backend.vercel.app/ingredients/${editingIngredient.id}`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
@@ -198,7 +198,7 @@ export default function BusyFoolIngredients() {
         }
       } else {
         // POST for adding
-        response = await fetch("https://busy-fool-backend-2-0.onrender.com/ingredients", {
+        response = await fetch("https://busy-fool-backend.vercel.app/ingredients", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -268,7 +268,7 @@ export default function BusyFoolIngredients() {
       setIsSubmitting(true)
       const token = localStorage.getItem("accessToken")
       try {
-        await fetch(`https://busy-fool-backend-2-0.onrender.com/ingredients/${id}`, {
+        await fetch(`https://busy-fool-backend.vercel.app/ingredients/${id}`, {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -296,37 +296,50 @@ export default function BusyFoolIngredients() {
     return { color: "secondary", text: "Good", icon: Package }
   }
 
-  const exportToCSV = async () => {
-    setIsSubmitting(true)
-    await new Promise(resolve => setTimeout(resolve, 500)) // Simulate async operation
-    const headers = ["Name", "Category", "Unit", "Purchase Price", "Package Size", "Waste %", "Supplier", "Cost per Unit", "Stock Level"]
-    const csvContent = [
-      headers.join(","),
-      ...ingredients.map(ing => [
+ 
+ 
+ const exportToCSV = async () => {
+  setIsSubmitting(true)
+  await new Promise(resolve => setTimeout(resolve, 500)) // Simulate async operation
+  
+  const headers = ["Name", "Unit", "Quantity", "Purchase Price", "Waste %", "Supplier", "Cost Per Subunit"]
+  
+  const csvContent = [
+    headers.join(","),
+    ...ingredients.map(ing => {
+      // Calculate the cost per subunit using the same logic as getCostValue
+      let costPerSubunit = ""
+      if (ing.unit === "ml" || ing.unit === "L") {
+        costPerSubunit = ing.cost_per_ml !== null && ing.cost_per_ml !== undefined ? ing.cost_per_ml.toFixed(4) : ""
+      } else if (ing.unit === "g" || ing.unit === "kg") {
+        costPerSubunit = ing.cost_per_gram !== null && ing.cost_per_gram !== undefined ? ing.cost_per_gram.toFixed(4) : ""
+      } else {
+        costPerSubunit = ing.cost_per_unit !== null && ing.cost_per_unit !== undefined ? ing.cost_per_unit.toFixed(4) : ""
+      }
+      
+      return [
         ing.name ?? "",
-        ing.category ?? "",
         ing.unit ?? "",
+        ing.quantity ?? "", // Changed from ing.package_size to ing.quantity
         ing.purchase_price ?? "",
-        ing.package_size ?? "",
         ing.waste_percent ?? "",
         ing.supplier ?? "",
-        (typeof ing.cost_per_unit === "number" && !isNaN(ing.cost_per_unit) ? ing.cost_per_unit.toFixed(4) : ""),
-        ing.stock_level ?? ""
-      ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
-    ].join("\n")
+        costPerSubunit
+      ].map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")
+    })
+  ].join("\n")
 
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "busy-fool-ingredients.csv"
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-    setIsSubmitting(false)
-  }
-
+  const blob = new Blob([csvContent], { type: "text/csv" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = "busy-fool-ingredients.csv"
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+  setIsSubmitting(false)
+}
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } }
@@ -341,7 +354,7 @@ export default function BusyFoolIngredients() {
     formData.append("file", file)
 
     try {
-      const response = await fetch("https://busy-fool-backend-2-0.onrender.com/ingredients/import-csv", {
+      const response = await fetch("https://busy-fool-backend.vercel.app/ingredients/import-csv", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

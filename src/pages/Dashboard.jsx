@@ -19,7 +19,7 @@ export default function Dashboard() {
       const token = localStorage.getItem("accessToken");
       const params = new URLSearchParams({ startDate, endDate });
       const res = await fetch(
-        `https://busy-fool-backend-2-0.onrender.com/products/analytics/dashboard?${params.toString()}`,
+        `https://busy-fool-backend.vercel.app/products/analytics/dashboard?${params.toString()}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

@@ -20,7 +20,8 @@ export default function Signup() {
   const onSubmit = async (data) => {
     setIsLoading(true)
     try {
-      const response = await fetch("https://busy-fool-backend-2-0.onrender.com/auth/register", {
+      // Register the user
+      const registerResponse = await fetch("https://busy-fool-backend.vercel.app/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -33,20 +34,45 @@ export default function Signup() {
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!registerResponse.ok) {
+        const errorData = await registerResponse.json();
         alert(errorData.message || "Registration failed");
         setIsLoading(false);
         return;
       }
 
-      const user = await response.json();
+      const user = await registerResponse.json();
       if (user.id) {
         localStorage.setItem("userId", user.id);
       }
 
-      // Registration successful, redirect to login page
-      window.location.href = "/login";
+      // Automatically log in after registration
+      const loginResponse = await fetch("https://busy-fool-backend.vercel.app/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
+      });
+
+      if (!loginResponse.ok) {
+        const errorData = await loginResponse.json();
+        alert(errorData.message || "Login after registration failed");
+        setIsLoading(false);
+        return;
+      }
+
+      const loginUser = await loginResponse.json();
+      if (loginUser.accessToken) {
+        localStorage.setItem("accessToken", loginUser.accessToken);
+      }
+
+      // Registration and login successful, redirect to welcome page
+      localStorage.setItem("loginSuccess", "1");
+      window.location.href = "/welcome";
     } catch (error) {
       alert("An error occurred. Please try again.");
       setIsLoading(false);
@@ -194,18 +220,18 @@ export default function Signup() {
                       className={`pl-12 pr-12 h-14 bg-white/70 border-2 rounded-xl transition-all duration-300 focus:border-amber-500 focus:bg-white hover:bg-white/90 ${
                         errors.password ? 'border-red-400 focus:border-red-500' : 'border-gray-200'
                       }`}
-                      placeholder="Create a strong password"
+                      placeholder="Enter your password"
                       {...register("password", {
                         required: "Password is required",
-                        minLength: { value: 6, message: "Minimum 6 characters" },
                       })}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-amber-600 transition-colors"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-amber-600 transition-colors flex items-center gap-1"
                     >
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      <span className="text-xs font-medium text-gray-600">{showPassword ? 'Hide' : 'Show'}</span>
                     </button>
                     {errors.password && (
                       <div className="flex items-center mt-2 text-red-500 text-sm">
@@ -231,17 +257,17 @@ export default function Signup() {
                       }`}
                       placeholder="Confirm your password"
                       {...register("confirmPassword", {
-                        required: "Confirm your password",
-                        validate: (val) =>
-                          val === watch("password") || "Passwords do not match",
+                        required: "Confirm password is required",
+                        validate: value => value === password || "Passwords do not match"
                       })}
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-amber-600 transition-colors"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-amber-600 transition-colors flex items-center gap-1"
                     >
                       {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      <span className="text-xs font-medium text-gray-600">{showConfirmPassword ? 'Hide' : 'Show'}</span>
                     </button>
                     {errors.confirmPassword && (
                       <div className="flex items-center mt-2 text-red-500 text-sm">

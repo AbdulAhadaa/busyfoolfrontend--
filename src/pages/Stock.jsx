@@ -50,7 +50,7 @@ export default function Stock() {
   const fetchIngredients = async () => {
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch("https://busy-fool-backend-2-0.onrender.com/ingredients", {
+      const res = await fetch("https://busy-fool-backend.vercel.app/ingredients", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -68,7 +68,7 @@ export default function Stock() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch("https://busy-fool-backend-2-0.onrender.com/stock", {
+      const res = await fetch("https://busy-fool-backend.vercel.app/stock", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -88,7 +88,7 @@ export default function Stock() {
     setMessage("");
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch(`https://busy-fool-backend-2-0.onrender.com/stock/${id}`, {
+      const res = await fetch(`https://busy-fool-backend.vercel.app/stock/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -144,7 +144,7 @@ export default function Stock() {
           waste_percent: Number(formData.waste_percent),
           ingredientId: formData.ingredientId
         };
-        res = await fetch(`https://busy-fool-backend-2-0.onrender.com/stock/${editingStock}`, {
+        res = await fetch(`https://busy-fool-backend.vercel.app/stock/${editingStock}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload)
@@ -157,7 +157,7 @@ export default function Stock() {
           waste_percent: Number(formData.waste_percent),
           ingredientId: formData.ingredientId
         };
-        res = await fetch("https://busy-fool-backend-2-0.onrender.com/stock", {
+        res = await fetch("https://busy-fool-backend.vercel.app/stock", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload)
@@ -435,7 +435,7 @@ export default function Stock() {
         purchasePrice: Number(purchaseFormData.purchasePrice),
         purchase_date: purchaseFormData.purchase_date
       };
-      const res = await fetch("https://busy-fool-backend-2-0.onrender.com/purchases", {
+      const res = await fetch("https://busy-fool-backend.vercel.app/purchases", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)

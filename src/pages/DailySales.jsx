@@ -26,7 +26,7 @@ import {
   User,
 } from "lucide-react"
 
-const API_BASE = "https://busy-fool-backend-2-0.onrender.com"
+const API_BASE = "https://busy-fool-backend.vercel.app"
 
 // Only these 4 expected fields per your requirement
 const dailyFields = [

@@ -1,10 +1,11 @@
-import React, { useState } from "react"
+"use client"
+
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Coffee, Mail, Lock, Eye, EyeOff, XCircle, ArrowRight, Shield, CheckCircle } from "lucide-react"
-
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
@@ -12,8 +13,6 @@ export default function Login() {
   const [showToast, setShowToast] = useState(false)
   const [toastMsg, setToastMsg] = useState("")
   const [showLoginToast, setShowLoginToast] = useState(false)
-
- 
 
   const {
     register,
@@ -24,7 +23,7 @@ export default function Login() {
   const onSubmit = async (data) => {
     setIsLoading(true)
     try {
-      const response = await fetch("https://busy-fool-backend-2-0.onrender.com/auth/login", {
+      const response = await fetch("https://busy-fool-backend.vercel.app/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -33,49 +32,60 @@ export default function Login() {
           email: data.email,
           password: data.password,
         }),
-      });
+      })
 
       if (!response.ok) {
-        const errorData = await response.json();
-        setToastMsg(errorData.message || "Login failed");
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 4000);
-        return;
+        const errorData = await response.json()
+        setToastMsg(errorData.message || "Login failed")
+        setShowToast(true)
+        setTimeout(() => setShowToast(false), 4000)
+        return
       }
 
-      const user = await response.json();
+      const user = await response.json()
       // Store access token in localStorage if present
       if (user.accessToken) {
-        localStorage.setItem("accessToken", user.accessToken);
+        localStorage.setItem("accessToken", user.accessToken)
       }
 
       // Show login toast and redirect
-      localStorage.setItem("loginSuccess", "1");
-      window.location.href = "/welcome";
+      localStorage.setItem("loginSuccess", "1")
+      window.location.href = "/welcome"
     } catch (error) {
-      setToastMsg("An error occurred. Please try again.");
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 4000);
+      setToastMsg("An error occurred. Please try again.")
+      setShowToast(true)
+      setTimeout(() => setShowToast(false), 4000)
     } finally {
       setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center px-4 py-8 relative overflow-hidden">
       {/* Toast Notification */}
       {(showToast || showLoginToast) && (
-        <div className={`fixed top-6 right-6 z-50 transition-all duration-300 ${showToast || showLoginToast ? 'opacity-100' : 'opacity-0'}`}>
-          <div className={`flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border-l-4 ${showLoginToast ? 'border-green-500 bg-green-50' : 'border-amber-500 bg-amber-50'}`}>
-            <div className={`rounded-full p-2 ${showLoginToast ? 'bg-green-100' : 'bg-amber-100'}`}>
-              {showLoginToast ? <CheckCircle className="w-6 h-6 text-green-600" /> : <CheckCircle className="w-6 h-6 text-amber-600" />}
+        <div
+          className={`fixed top-6 right-6 z-50 transition-all duration-300 ${showToast || showLoginToast ? "opacity-100" : "opacity-0"}`}
+        >
+          <div
+            className={`flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border-l-4 ${showLoginToast ? "border-green-500 bg-green-50" : "border-amber-500 bg-amber-50"}`}
+          >
+            <div className={`rounded-full p-2 ${showLoginToast ? "bg-green-100" : "bg-amber-100"}`}>
+              {showLoginToast ? (
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              ) : (
+                <CheckCircle className="w-6 h-6 text-amber-600" />
+              )}
             </div>
             <div className="flex-1">
               <p className="font-semibold text-gray-900"></p>
               <p className="text-sm text-gray-700">{toastMsg}</p>
             </div>
             <button
-              onClick={() => { setShowToast(false); setShowLoginToast(false); }}
+              onClick={() => {
+                setShowToast(false)
+                setShowLoginToast(false)
+              }}
               className="p-1 hover:bg-gray-100 rounded-full transition-colors"
             >
               <XCircle className="w-5 h-5 text-gray-400" />
@@ -97,7 +107,7 @@ export default function Login() {
             {/* Decorative elements */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-white/10 to-transparent rounded-full blur-2xl"></div>
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-yellow-400/20 to-transparent rounded-full blur-xl"></div>
-            
+
             <div className="relative z-10">
               <div className="flex items-center space-x-3 mb-6">
                 <div className="p-3 bg-white/10 backdrop-blur-sm rounded-2xl">
@@ -105,15 +115,15 @@ export default function Login() {
                 </div>
                 <div className="w-12 h-1 bg-gradient-to-r from-amber-300 to-orange-400 rounded-full"></div>
               </div>
-              
+
               <h1 className="text-5xl font-bold leading-tight bg-gradient-to-r from-white to-amber-100 bg-clip-text text-transparent mb-4">
                 Welcome Back
               </h1>
-              
+
               <p className="text-xl text-amber-100/90 leading-relaxed mb-8">
                 Sign in to access your business dashboard and manage your operations efficiently.
               </p>
-              
+
               <div className="space-y-4">
                 <div className="flex items-center space-x-3 text-amber-100/80">
                   <Shield className="w-5 h-5" />
@@ -152,7 +162,7 @@ export default function Login() {
                 <p className="text-gray-600">Access your coffee shop dashboard</p>
               </div>
 
-              <div className="space-y-6">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 {/* Email Field */}
                 <div className="group">
                   <Label htmlFor="email" className="text-gray-700 font-medium mb-2 block">
@@ -164,7 +174,7 @@ export default function Login() {
                       id="email"
                       type="email"
                       className={`pl-12 h-14 bg-white/70 border-2 rounded-xl transition-all duration-300 focus:border-amber-500 focus:bg-white hover:bg-white/90 ${
-                        errors.email ? 'border-red-400 focus:border-red-500' : 'border-gray-200'
+                        errors.email ? "border-red-400 focus:border-red-500" : "border-gray-200"
                       }`}
                       placeholder="your@email.com"
                       {...register("email", {
@@ -190,7 +200,12 @@ export default function Login() {
                     <Label htmlFor="password" className="text-gray-700 font-medium">
                       Password
                     </Label>
-               
+                    <a
+                      href="/forgot-password"
+                      className="text-sm text-amber-600 hover:text-amber-700 font-medium transition-colors"
+                    >
+                      Forgot password?
+                    </a>
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-amber-600 transition-colors" />
@@ -198,7 +213,7 @@ export default function Login() {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       className={`pl-12 pr-12 h-14 bg-white/70 border-2 rounded-xl transition-all duration-300 focus:border-amber-500 focus:bg-white hover:bg-white/90 ${
-                        errors.password ? 'border-red-400 focus:border-red-500' : 'border-gray-200'
+                        errors.password ? "border-red-400 focus:border-red-500" : "border-gray-200"
                       }`}
                       placeholder="Enter your password"
                       {...register("password", {
@@ -208,9 +223,10 @@ export default function Login() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-amber-600 transition-colors"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-amber-600 transition-colors flex items-center gap-1"
                     >
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      <span className="text-xs font-medium text-gray-600">{showPassword ? "Hide" : "Show"}</span>
                     </button>
                     {errors.password && (
                       <div className="flex items-center mt-2 text-red-500 text-sm">
@@ -221,23 +237,9 @@ export default function Login() {
                   </div>
                 </div>
 
-                {/* Remember Me */}
-                {/* <div className="flex items-center justify-between">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        className="sr-only"
-                      />
-                      <div className="w-5 h-5 bg-white border-2 border-gray-300 rounded hover:border-amber-500 transition-colors"></div>
-                    </div>
-                    <span className="text-sm text-gray-600">Remember me</span>
-                  </label>
-                </div> */}
-
                 {/* Submit Button */}
                 <Button
-                  onClick={handleSubmit(onSubmit)}
+                  type="submit"
                   disabled={isLoading}
                   className="w-full h-14 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-lg font-semibold rounded-xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
@@ -254,9 +256,6 @@ export default function Login() {
                   )}
                 </Button>
 
-                {/* Social Login Options */}
-                {/* Removed Google and Facebook login buttons for professionalism */}
-
                 {/* Security Notice */}
                 <div className="mt-8 p-4 bg-amber-50/50 border border-amber-200/50 rounded-xl">
                   <div className="flex items-start space-x-3">
@@ -269,7 +268,7 @@ export default function Login() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
         </div>

@@ -29,11 +29,11 @@ import {
   Download,
 } from "lucide-react"
 
-const API_BASE = "https://busy-fool-backend-2-0.onrender.com"
+const API_BASE = "https://busy-fool-backend.vercel.app"
 
 const IDEMP_STORE_KEY = "bf:idempotency:imports"
 const IDEMP_TTL_MS = 30 * 60 * 1000 // 30 minutes
-const SALES_STATS_KEY = "bf:sales:last-stats"
+const getSalesStatsKey = (userId) => `bf:sales:last-stats:${userId || "anonymous"}`
 
 function toHex(buffer) {
   const bytes = new Uint8Array(buffer)
@@ -183,14 +183,7 @@ export default function Sales() {
   const [previewData, setPreviewData] = useState(null)
 
   // Sales page summary stats (persisted from last preview)
-  const [salesStats, setSalesStats] = useState(() => {
-    try {
-      const raw = localStorage.getItem(SALES_STATS_KEY)
-      return raw ? JSON.parse(raw) : null
-    } catch {
-      return null
-    }
-  })
+  const [salesStats, setSalesStats] = useState(null)
 
   // Preview pagination
   const [previewPage, setPreviewPage] = useState(1)
@@ -328,6 +321,19 @@ export default function Sales() {
     })()
   }, [loadUserId])
 
+  useEffect(() => {
+    if (currentUserId) {
+      try {
+        const raw = localStorage.getItem(getSalesStatsKey(currentUserId))
+        setSalesStats(raw ? JSON.parse(raw) : null)
+      } catch {
+        setSalesStats(null)
+      }
+    } else {
+      setSalesStats(null)
+    }
+  }, [currentUserId])
+
   const fetchProducts = async () => {
     try {
       const res = await fetch(`${API_BASE}/products`, { headers: { ...authHeaders() } })
@@ -396,10 +402,14 @@ export default function Sales() {
           const contentType = res.headers.get("content-type") || ""
           if (contentType.includes("application/json")) {
             const json = await res.json()
-            if (json?.message) errorMsg = json.message
+            if (json?.message) {
+              errorMsg = formatStockError(json.message) // Apply formatting here
+            }
           } else {
             const text = await res.text()
-            if (text) errorMsg = text
+            if (text) {
+              errorMsg = formatStockError(text) // Apply formatting here too
+            }
           }
         } catch {}
         setMessage(errorMsg)
@@ -438,21 +448,27 @@ export default function Sales() {
       else if (Array.isArray(data?.data?.headers)) headers = data.data.headers
       else if (Array.isArray(data?.csvHeaders)) headers = data.csvHeaders
 
-      if (!headers.length) {
-        setMessage("No headers found in CSV. Ensure the first row contains header names.")
+      // Filter out empty, null, undefined headers and whitespace-only headers
+      const filteredHeaders = headers.filter((h) => {
+        const header = String(h || "").trim()
+        return header.length > 0
+      })
+
+      if (!filteredHeaders.length) {
+        setMessage("No valid headers found in CSV. Ensure the first row contains header names.")
         setMessageType("error")
         setIsProcessingCsv(false)
         return
       }
 
-      setCsvHeaders(headers)
+      setCsvHeaders(filteredHeaders) // Use filtered headers
       setCsvFile(file)
-      const sig = getHeaderSignature(headers)
+      const sig = getHeaderSignature(filteredHeaders) // Use filtered headers
       setHeaderSignature(sig)
 
       const uid2 = currentUserId || (await loadUserId())
       const previous = loadMappingLocal(uid2, sig)
-      if (previous && hasRequiredMappings(headers, previous.mappings)) {
+      if (previous && hasRequiredMappings(filteredHeaders, previous.mappings)) {
         setMappings(previous.mappings)
         const ok = await saveMappingSilent(uid2, previous.mappings)
         if (ok) {
@@ -460,7 +476,7 @@ export default function Sales() {
           setShowMappingModal(false)
           setMessage("Found previous mapping. Auto-applied and generating preview...")
           setMessageType("success")
-          await previewImport(file) // using daily endpoint for preview JSON
+          await previewImport(file)
           setIsProcessingCsv(false)
           return
         } else {
@@ -505,7 +521,11 @@ export default function Sales() {
   const removeMappingForField = (fieldKey) => setMappings((prev) => ({ ...prev, [fieldKey]: null }))
   const getAvailableHeaders = () => {
     const mapped = Object.values(mappings).filter(Boolean)
-    return csvHeaders.filter((h) => !mapped.includes(h))
+    return csvHeaders.filter((h) => {
+      // Filter out empty, null, undefined headers and whitespace-only headers
+      const header = String(h || "").trim()
+      return header.length > 0 && !mapped.includes(h)
+    })
   }
   const resetCsvState = () => {
     setCsvFile(null)
@@ -540,7 +560,6 @@ export default function Sales() {
     }
     const uid = currentUserId || (await loadUserId())
     if (!uid) {
-   
       setMessageType("error")
       return
     }
@@ -627,7 +646,7 @@ export default function Sales() {
       // Persist stats to show above Sales History
       try {
         localStorage.setItem(
-          SALES_STATS_KEY,
+          getSalesStatsKey(currentUserId),
           JSON.stringify({
             totalSales: normalized.totalSales,
             totalProfit: normalized.totalProfit,
@@ -659,7 +678,7 @@ export default function Sales() {
     try {
       const uid = currentUserId || (await loadUserId())
       if (!uid) {
-
+        setMessage("Could not determine user ID. Please log in again.")
         setMessageType("error")
         return
       }
@@ -704,7 +723,7 @@ export default function Sales() {
         const mapFail = readImportMap()
         delete mapFail[idKey]
         writeImportMap(mapFail)
-        setMessage(text || "Failed to import sales.")
+        setMessage(formatStockError(text) || "Failed to import sales.") // Apply formatting here
         setMessageType("error")
       }
     } catch (e) {
@@ -715,9 +734,7 @@ export default function Sales() {
           writeImportMap(mapErr)
         }
       } catch {}
-      setMessage(
-        "Network error importing CSV. If this is a CORS issue, allow your origin and methods on https://busy-fool-backend-2-0.onrender.com.",
-      )
+      setMessage("Network error importing CSV.")
       setMessageType("error")
     } finally {
       setIsProcessingCsv(false)
@@ -756,7 +773,25 @@ export default function Sales() {
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }
+  function formatStockError(errorMessage) {
+    if (!errorMessage || typeof errorMessage !== "string") return errorMessage
 
+    // Check if it's a stock-related error
+    if (errorMessage.includes("Insufficient stock") || errorMessage.includes("Maximum sellable quantity")) {
+      // Extract the maximum quantity if available
+      const maxQuantityMatch = errorMessage.match(/Maximum sellable quantity is (\d+)/)
+      const maxQuantity = maxQuantityMatch ? maxQuantityMatch[1] : null
+
+      if (maxQuantity) {
+        return `Insufficient stock. Maximum available quantity: ${maxQuantity}`
+      } else {
+        return "Insufficient stock. Please check product availability."
+      }
+    }
+
+    // Return original message if not a stock error
+    return errorMessage
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -781,50 +816,50 @@ export default function Sales() {
                 ) : (
                   <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
-                   loading.
+                    loading.
                   </p>
                 )}
               </div>
-           <div className="flex gap-2 flex-wrap">
-  <Button
-    onClick={() => setShowGuidelinesModal(true)}
-    variant="outline"
-    className="bg-white/80 hover:bg-white text-amber-700 border-amber-200 hover:border-amber-300 px-4 py-2 rounded-xl flex items-center gap-2 hover:shadow-md transition-all"
-    type="button"
-  >
-    <Info className="w-4 h-4" />
-    CSV Guidelines
-  </Button>
-  
-  <Button
-    onClick={exportSalesToCSV}
-    className="bg-gradient-to-r from-[#6B4226] to-[#5a3620] text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all shadow-sm"
-    type="button"
-  >
-    <Download className="w-4 h-4 mr-2" />
-    Export CSV
-  </Button>
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  onClick={() => setShowGuidelinesModal(true)}
+                  variant="outline"
+                  className="bg-white/80 hover:bg-white text-amber-700 border-amber-200 hover:border-amber-300 px-4 py-2 rounded-xl flex items-center gap-2 hover:shadow-md transition-all"
+                  type="button"
+                >
+                  <Info className="w-4 h-4" />
+                  CSV Guidelines
+                </Button>
 
-  <Button
-    onClick={() => setShowCsvModal(true)}
-    className="bg-gradient-to-r from-[#6B4226] to-[#5a3620] text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all shadow-sm"
-    disabled={isProcessingCsv}
-    type="button"
-  >
-    <Upload className="w-4 h-4 mr-2" />
-    Import CSV
-  </Button>
+                <Button
+                  onClick={exportSalesToCSV}
+                  className="bg-gradient-to-r from-[#6B4226] to-[#5a3620] text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all shadow-sm"
+                  type="button"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export CSV
+                </Button>
 
-  <Button
-    onClick={() => setShowModal(true)}
-    className="bg-gradient-to-r from-[#6B4226] to-[#5a3620] text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all shadow-sm"
-    disabled={isSubmitting}
-    type="button"
-  >
-    <Plus className="w-4 h-4 mr-2" />
-    Add Sale
-  </Button>
-</div>
+                <Button
+                  onClick={() => setShowCsvModal(true)}
+                  className="bg-gradient-to-r from-[#6B4226] to-[#5a3620] text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all shadow-sm"
+                  disabled={isProcessingCsv}
+                  type="button"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import CSV
+                </Button>
+
+                <Button
+                  onClick={() => setShowModal(true)}
+                  className="bg-gradient-to-r from-[#6B4226] to-[#5a3620] text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all shadow-sm"
+                  disabled={isSubmitting}
+                  type="button"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Sale
+                </Button>
+              </div>
             </div>
 
             {message && (
@@ -849,97 +884,111 @@ export default function Sales() {
             )}
 
             {/* Show last preview stats above Sales History, as requested */}
-       {salesStats ? (
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    {/* Total Sales Card - Always Blue (Neutral) */}
-    <Card className="group relative bg-white/95 backdrop-blur-sm border border-slate-200/60 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-slate-600 mb-1">Total Sales</p>
-            <p className="text-xs text-slate-500 mb-3">last preview</p>
-            <p className="text-2xl font-bold text-slate-900">{formatCurrency(salesStats.totalSales)}</p>
-          </div>
-          <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
-            <DollarSign className="w-5 h-5 text-blue-600" />
-          </div>
-        </div>
-        <div className="mt-4 h-1 bg-gradient-to-r from-blue-500 to-blue-400 rounded-full"></div>
-      </CardContent>
-    </Card>
+            {salesStats ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                {/* Total Sales Card - Always Blue (Neutral) */}
+                <Card className="group relative bg-white/95 backdrop-blur-sm border border-slate-200/60 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-slate-600 mb-1">Total Sales</p>
+                        <p className="text-xs text-slate-500 mb-3">last preview</p>
+                        <p className="text-2xl font-bold text-slate-900">{formatCurrency(salesStats.totalSales)}</p>
+                      </div>
+                      <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                        <DollarSign className="w-5 h-5 text-blue-600" />
+                      </div>
+                    </div>
+                    <div className="mt-4 h-1 bg-gradient-to-r from-blue-500 to-blue-400 rounded-full"></div>
+                  </CardContent>
+                </Card>
 
-    {/* Total Profit Card - Green if positive, Red if negative */}
-    <Card className={`group relative bg-white/95 backdrop-blur-sm border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
-      salesStats.totalProfit >= 0 
-        ? 'border-emerald-200/60 shadow-lg shadow-emerald-100/20' 
-        : 'border-red-200/60 shadow-lg shadow-red-100/20'
-    }`}>
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-slate-600 mb-1">Total Profit</p>
-            <p className="text-xs text-slate-500 mb-3">last preview</p>
-            <p className={`text-2xl font-bold ${
-              salesStats.totalProfit >= 0 ? 'text-emerald-700' : 'text-red-700'
-            }`}>
-              {formatCurrency(salesStats.totalProfit)}
-            </p>
-          </div>
-          <div className={`p-3 rounded-xl border ${
-            salesStats.totalProfit >= 0 
-              ? 'bg-emerald-50 border-emerald-100' 
-              : 'bg-red-50 border-red-100'
-          }`}>
-            <DollarSign className={`w-5 h-5 ${
-              salesStats.totalProfit >= 0 ? 'text-emerald-600' : 'text-red-600'
-            }`} />
-          </div>
-        </div>
-        <div className={`mt-4 h-1 rounded-full ${
-          salesStats.totalProfit >= 0 
-            ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' 
-            : 'bg-gradient-to-r from-red-500 to-red-400'
-        }`}></div>
-      </CardContent>
-    </Card>
+                {/* Total Profit Card - Green if positive, Red if negative */}
+                <Card
+                  className={`group relative bg-white/95 backdrop-blur-sm border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
+                    salesStats.totalProfit >= 0
+                      ? "border-emerald-200/60 shadow-lg shadow-emerald-100/20"
+                      : "border-red-200/60 shadow-lg shadow-red-100/20"
+                  }`}
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-slate-600 mb-1">Total Profit</p>
+                        <p className="text-xs text-slate-500 mb-3">last preview</p>
+                        <p
+                          className={`text-2xl font-bold ${
+                            salesStats.totalProfit >= 0 ? "text-emerald-700" : "text-red-700"
+                          }`}
+                        >
+                          {formatCurrency(salesStats.totalProfit)}
+                        </p>
+                      </div>
+                      <div
+                        className={`p-3 rounded-xl border ${
+                          salesStats.totalProfit >= 0 ? "bg-emerald-50 border-emerald-100" : "bg-red-50 border-red-100"
+                        }`}
+                      >
+                        <DollarSign
+                          className={`w-5 h-5 ${salesStats.totalProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}
+                        />
+                      </div>
+                    </div>
+                    <div
+                      className={`mt-4 h-1 rounded-full ${
+                        salesStats.totalProfit >= 0
+                          ? "bg-gradient-to-r from-emerald-500 to-emerald-400"
+                          : "bg-gradient-to-r from-red-500 to-red-400"
+                      }`}
+                    ></div>
+                  </CardContent>
+                </Card>
 
-    {/* Profit Margin Card - Green if positive, Red if negative */}
-    <Card className={`group relative bg-white/95 backdrop-blur-sm border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
-      salesStats.avgProfitMargin >= 0 
-        ? 'border-emerald-200/60 shadow-lg shadow-emerald-100/20' 
-        : 'border-red-200/60 shadow-lg shadow-red-100/20'
-    }`}>
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-slate-600 mb-1">Avg Profit Margin</p>
-            <p className="text-xs text-slate-500 mb-3">last preview</p>
-            <p className={`text-2xl font-bold ${
-              salesStats.avgProfitMargin >= 0 ? 'text-emerald-700' : 'text-red-700'
-            }`}>
-              {formatPercent2(salesStats.avgProfitMargin)}
-            </p>
-          </div>
-          <div className={`p-3 rounded-xl border ${
-            salesStats.avgProfitMargin >= 0 
-              ? 'bg-emerald-50 border-emerald-100' 
-              : 'bg-red-50 border-red-100'
-          }`}>
-            <Percent className={`w-5 h-5 ${
-              salesStats.avgProfitMargin >= 0 ? 'text-emerald-600' : 'text-red-600'
-            }`} />
-          </div>
-        </div>
-        <div className={`mt-4 h-1 rounded-full ${
-          salesStats.avgProfitMargin >= 0 
-            ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' 
-            : 'bg-gradient-to-r from-red-500 to-red-400'
-        }`}></div>
-      </CardContent>
-    </Card>
-  </div>
-) : null}
-<Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+                {/* Profit Margin Card - Green if positive, Red if negative */}
+                <Card
+                  className={`group relative bg-white/95 backdrop-blur-sm border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
+                    salesStats.avgProfitMargin >= 0
+                      ? "border-emerald-200/60 shadow-lg shadow-emerald-100/20"
+                      : "border-red-200/60 shadow-lg shadow-red-100/20"
+                  }`}
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-slate-600 mb-1">Avg Profit Margin</p>
+                        <p className="text-xs text-slate-500 mb-3">last preview</p>
+                        <p
+                          className={`text-2xl font-bold ${
+                            salesStats.avgProfitMargin >= 0 ? "text-emerald-700" : "text-red-700"
+                          }`}
+                        >
+                          {formatPercent2(salesStats.avgProfitMargin)}
+                        </p>
+                      </div>
+                      <div
+                        className={`p-3 rounded-xl border ${
+                          salesStats.avgProfitMargin >= 0
+                            ? "bg-emerald-50 border-emerald-100"
+                            : "bg-red-50 border-red-100"
+                        }`}
+                      >
+                        <Percent
+                          className={`w-5 h-5 ${salesStats.avgProfitMargin >= 0 ? "text-emerald-600" : "text-red-600"}`}
+                        />
+                      </div>
+                    </div>
+                    <div
+                      className={`mt-4 h-1 rounded-full ${
+                        salesStats.avgProfitMargin >= 0
+                          ? "bg-gradient-to-r from-emerald-500 to-emerald-400"
+                          : "bg-gradient-to-r from-red-500 to-red-400"
+                      }`}
+                    ></div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : null}
+            <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
               <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
@@ -1034,22 +1083,22 @@ export default function Sales() {
                           const product = sale.product?.name || sale.product_name || "-"
                           const qty = sale.quantity ?? sale.quantitySold ?? ""
                           const date = sale.saleDate || sale.sale_date || sale.date
-                          let formattedDate;
-      if (date) {
-        formattedDate = new Date(date).toLocaleDateString();
-      } else {
-        // Show only today's date (not time) if no date is provided
-        const today = new Date();
-        formattedDate = today.toLocaleDateString();
-      }
-      return (
-        <tr key={sale.id} className="hover:bg-gray-50/50 transition-colors duration-150 bg-white">
-          <td className="px-6 py-4 font-medium text-gray-900">{product}</td>
-          <td className="px-6 py-4 text-right font-semibold text-gray-900">{qty}</td>
-          <td className="px-6 py-4 text-center text-xs text-gray-700">{formattedDate}</td>
-          <td className="px-6 py-4 text-center text-xs text-gray-700">{sale.user?.name || "-"}</td>
-        </tr>
-      )
+                          let formattedDate
+                          if (date) {
+                            formattedDate = new Date(date).toLocaleDateString()
+                          } else {
+                            // Show only today's date (not time) if no date is provided
+                            const today = new Date()
+                            formattedDate = today.toLocaleDateString()
+                          }
+                          return (
+                            <tr key={sale.id} className="hover:bg-gray-50/50 transition-colors duration-150 bg-white">
+                              <td className="px-6 py-4 font-medium text-gray-900">{product}</td>
+                              <td className="px-6 py-4 text-right font-semibold text-gray-900">{qty}</td>
+                              <td className="px-6 py-4 text-center text-xs text-gray-700">{formattedDate}</td>
+                              <td className="px-6 py-4 text-center text-xs text-gray-700">{sale.user?.name || "-"}</td>
+                            </tr>
+                          )
                         })
                       )}
                     </tbody>
@@ -1213,183 +1262,192 @@ export default function Sales() {
               </DialogContent>
             </Dialog>
 
-{/* CSV Import Guidelines Modal */}
-<Dialog open={showGuidelinesModal} onOpenChange={(open) => !open && setShowGuidelinesModal(false)}>
-  <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 backdrop-blur-sm border-0 shadow-2xl">
-    <DialogHeader className="pb-6">
-      <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-amber-700 to-orange-600 bg-clip-text text-transparent flex items-center gap-3">
-        <div className="p-3 bg-gradient-to-r from-amber-100 to-orange-100 rounded-xl shadow-sm">
-          <Info className="w-6 h-6 text-amber-600" />
-        </div>
-        CSV Upload Guidelines
-      </DialogTitle>
-    </DialogHeader>
+            {/* CSV Import Guidelines Modal */}
+            <Dialog open={showGuidelinesModal} onOpenChange={(open) => !open && setShowGuidelinesModal(false)}>
+              <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 backdrop-blur-sm border-0 shadow-2xl">
+                <DialogHeader className="pb-6">
+                  <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-amber-700 to-orange-600 bg-clip-text text-transparent flex items-center gap-3">
+                    <div className="p-3 bg-gradient-to-r from-amber-100 to-orange-100 rounded-xl shadow-sm">
+                      <Info className="w-6 h-6 text-amber-600" />
+                    </div>
+                    CSV Upload Guidelines
+                  </DialogTitle>
+                </DialogHeader>
 
-    <div className="space-y-8 py-4">
-      {/* Key Guidelines Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200 shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-emerald-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <h3 className="font-bold text-emerald-900 text-lg mb-2">Match Product Names</h3>
-                <p className="text-emerald-800 text-sm leading-relaxed">
-                  Use <strong>exact product names</strong> from your existing BusyFool products to ensure accurate reporting and profit calculations.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                <div className="space-y-8 py-4">
+                  {/* Key Guidelines Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card className="bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-4">
+                          <div className="p-2 bg-emerald-100 rounded-lg">
+                            <CheckCircle className="w-5 h-5 text-emerald-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-emerald-900 text-lg mb-2">Match Product Names</h3>
+                            <p className="text-emerald-800 text-sm leading-relaxed">
+                              Use <strong>exact product names</strong> from your existing BusyFool products to ensure
+                              accurate reporting and profit calculations.
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="font-bold text-blue-900 text-lg mb-2">Required Columns</h3>
-                <div className="text-blue-800 text-sm space-y-1">
-                  <p><code className="bg-blue-200 px-2 py-1 rounded">Item name</code> - Product identifier</p>
-                  <p><code className="bg-blue-200 px-2 py-1 rounded">Quantity</code> - Number of items sold</p>
-                  <p><code className="bg-blue-200 px-2 py-1 rounded">Amount</code> - Total sale value</p>
+                    <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-4">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <AlertCircle className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-blue-900 text-lg mb-2">Required Columns</h3>
+                            <div className="text-blue-800 text-sm space-y-1">
+                              <p>
+                                <code className="bg-blue-200 px-2 py-1 rounded">Item name</code> - Product identifier
+                              </p>
+                              <p>
+                                <code className="bg-blue-200 px-2 py-1 rounded">Quantity</code> - Number of items sold
+                              </p>
+                              <p>
+                                <code className="bg-blue-200 px-2 py-1 rounded">Amount</code> - Total sale value
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-4">
+                          <div className="p-2 bg-amber-100 rounded-lg">
+                            <DollarSign className="w-5 h-5 text-amber-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-amber-900 text-lg mb-2">Amount Guidelines</h3>
+                            <p className="text-amber-800 text-sm leading-relaxed">
+                              Enter the <strong>total sale amount</strong> for the quantity, not the unit price.
+                              <br />
+                              Example: 10 items × $3.50 = $35.00
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-4">
+                          <div className="p-2 bg-purple-100 rounded-lg">
+                            <Package className="w-5 h-5 text-purple-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-purple-900 text-lg mb-2">Avoid New Products</h3>
+                            <p className="text-purple-800 text-sm leading-relaxed">
+                              Unknown products default to <strong>zero cost</strong>, which affects profit calculations.
+                              Ensure all items exist in your inventory first.
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Optional Column */}
+                  <Card className="bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200 shadow-md">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-4">
+                        <div className="p-2 bg-gray-100 rounded-lg">
+                          <FileText className="w-5 h-5 text-gray-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-900 text-lg mb-2">Optional Column</h3>
+                          <p className="text-gray-700 text-sm">
+                            <code className="bg-gray-200 px-2 py-1 rounded mr-2">Date</code>
+                            If missing, the system will use the filename date for daily sales tracking.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Supported Formats */}
+                  <Card className="bg-gradient-to-r from-teal-50 to-cyan-50 border-teal-200 shadow-md">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="p-2 bg-teal-100 rounded-lg">
+                          <Upload className="w-5 h-5 text-teal-600" />
+                        </div>
+                        <h3 className="font-bold text-teal-900 text-lg">Supported Formats</h3>
+                      </div>
+                      <div className="flex gap-3">
+                        <span className="px-3 py-2 bg-teal-100 text-teal-800 rounded-lg text-sm font-semibold">
+                          .csv
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Example Section */}
+                  <Card className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-indigo-200 shadow-lg">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="p-3 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-xl shadow-sm">
+                          <Eye className="w-6 h-6 text-indigo-600" />
+                        </div>
+                        <h3 className="font-bold text-gray-900 text-xl">Example CSV Format</h3>
+                      </div>
+
+                      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-indigo-200 overflow-hidden shadow-inner">
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+                              <tr>
+                                <th className="px-4 py-3 text-left text-sm font-semibold">Item name</th>
+                                <th className="px-4 py-3 text-center text-sm font-semibold">Quantity</th>
+                                <th className="px-4 py-3 text-right text-sm font-semibold">Amount</th>
+                                <th className="px-4 py-3 text-center text-sm font-semibold">Date</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-indigo-100">
+                              <tr className="hover:bg-indigo-50/50 transition-colors">
+                                <td className="px-4 py-3 text-gray-900 font-medium">Latte</td>
+                                <td className="px-4 py-3 text-center text-gray-700">10</td>
+                                <td className="px-4 py-3 text-right text-gray-700 font-semibold">35.00</td>
+                                <td className="px-4 py-3 text-center text-gray-600 text-sm">2025-08-06</td>
+                              </tr>
+                              <tr className="hover:bg-indigo-50/50 transition-colors">
+                                <td className="px-4 py-3 text-gray-900 font-medium">Cappuccino</td>
+                                <td className="px-4 py-3 text-center text-gray-700">5</td>
+                                <td className="px-4 py-3 text-right text-gray-700 font-semibold">22.50</td>
+                                <td className="px-4 py-3 text-center text-gray-600 text-sm">2025-08-06</td>
+                              </tr>
+                              <tr className="hover:bg-indigo-50/50 transition-colors">
+                                <td className="px-4 py-3 text-gray-900 font-medium">Croissant</td>
+                                <td className="px-4 py-3 text-center text-gray-700">15</td>
+                                <td className="px-4 py-3 text-right text-gray-700 font-semibold">67.50</td>
+                                <td className="px-4 py-3 text-center text-gray-600 text-sm">2025-08-06</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card className="bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-200 shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <DollarSign className="w-5 h-5 text-amber-600" />
-              </div>
-              <div>
-                <h3 className="font-bold text-amber-900 text-lg mb-2">Amount Guidelines</h3>
-                <p className="text-amber-800 text-sm leading-relaxed">
-                  Enter the <strong>total sale amount</strong> for the quantity, not the unit price. 
-                  <br />Example: 10 items × $3.50 = $35.00
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Package className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <h3 className="font-bold text-purple-900 text-lg mb-2">Avoid New Products</h3>
-                <p className="text-purple-800 text-sm leading-relaxed">
-                  Unknown products default to <strong>zero cost</strong>, which affects profit calculations. Ensure all items exist in your inventory first.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Optional Column */}
-      <Card className="bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200 shadow-md">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="p-2 bg-gray-100 rounded-lg">
-              <FileText className="w-5 h-5 text-gray-600" />
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 text-lg mb-2">Optional Column</h3>
-              <p className="text-gray-700 text-sm">
-                <code className="bg-gray-200 px-2 py-1 rounded mr-2">Date</code>
-                If missing, the system will use the filename date for daily sales tracking.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Supported Formats */}
-      <Card className="bg-gradient-to-r from-teal-50 to-cyan-50 border-teal-200 shadow-md">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-2 bg-teal-100 rounded-lg">
-              <Upload className="w-5 h-5 text-teal-600" />
-            </div>
-            <h3 className="font-bold text-teal-900 text-lg">Supported Formats</h3>
-          </div>
-          <div className="flex gap-3">
-            <span className="px-3 py-2 bg-teal-100 text-teal-800 rounded-lg text-sm font-semibold">.csv</span>
-         </div> 
-        </CardContent>
-      </Card>
-
-      {/* Example Section */}
-      <Card className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-indigo-200 shadow-lg">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="p-3 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-xl shadow-sm">
-              <Eye className="w-6 h-6 text-indigo-600" />
-            </div>
-            <h3 className="font-bold text-gray-900 text-xl">Example CSV Format</h3>
-          </div>
-          
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-indigo-200 overflow-hidden shadow-inner">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-sm font-semibold">Item name</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold">Quantity</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold">Amount</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-indigo-100">
-                  <tr className="hover:bg-indigo-50/50 transition-colors">
-                    <td className="px-4 py-3 text-gray-900 font-medium">Latte</td>
-                    <td className="px-4 py-3 text-center text-gray-700">10</td>
-                    <td className="px-4 py-3 text-right text-gray-700 font-semibold">35.00</td>
-                    <td className="px-4 py-3 text-center text-gray-600 text-sm">2025-08-06</td>
-                  </tr>
-                  <tr className="hover:bg-indigo-50/50 transition-colors">
-                    <td className="px-4 py-3 text-gray-900 font-medium">Cappuccino</td>
-                    <td className="px-4 py-3 text-center text-gray-700">5</td>
-                    <td className="px-4 py-3 text-right text-gray-700 font-semibold">22.50</td>
-                    <td className="px-4 py-3 text-center text-gray-600 text-sm">2025-08-06</td>
-                  </tr>
-                  <tr className="hover:bg-indigo-50/50 transition-colors">
-                    <td className="px-4 py-3 text-gray-900 font-medium">Croissant</td>
-                    <td className="px-4 py-3 text-center text-gray-700">15</td>
-                    <td className="px-4 py-3 text-right text-gray-700 font-semibold">67.50</td>
-                    <td className="px-4 py-3 text-center text-gray-600 text-sm">2025-08-06</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          
-        
-        </CardContent>
-      </Card>
-    </div>
-
-    <DialogFooter className="pt-8 border-t border-gray-200">
-      <Button
-        onClick={() => setShowGuidelinesModal(false)}
-        className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-semibold"
-        type="button"
-      >
-        Got it! Let's Import
-      </Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
+                <DialogFooter className="pt-8 border-t border-gray-200">
+                  <Button
+                    onClick={() => setShowGuidelinesModal(false)}
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 font-semibold"
+                    type="button"
+                  >
+                    Got it! Let's Import
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             {/* Drag & Drop Column Mapping Modal */}
             <Dialog open={showMappingModal} onOpenChange={(open) => !open && setShowMappingModal(false)}>
               <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
@@ -1662,9 +1720,9 @@ export default function Sales() {
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Product</th>
                                 <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Quantity</th>
                                 <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Unit Price</th>
-                              
+
                                 <th className="px-4 py-3 text-right textsm font-semibold text-gray-700">Amount</th>
-                              
+
                                 <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Profit</th>
                               </tr>
                             </thead>
@@ -1674,9 +1732,9 @@ export default function Sales() {
                                   <td className="px-4 py-3 text-sm text-gray-900">{sale.productName}</td>
                                   <td className="px-4 py-3 text-sm text-gray-900 text-right">{sale.quantitySold}</td>
                                   <td className="px-4 py-3 text-sm text-right">{formatCurrency(sale.unitPrice)}</td>
-                                 
+
                                   <td className="px-4 py-3 text-sm text-right">{formatCurrency(sale.amount)}</td>
-                                 
+
                                   <td className="px-4 py-3 text-sm text-right">
                                     <span
                                       className={`font-medium ${

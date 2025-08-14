@@ -12,7 +12,12 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       setError(null);
-      const response = await fetch('https://busy-fool-backend-2-0.onrender.com/api/dashboard');
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch('https://busy-fool-backend.vercel.app/api/dashboard', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

@@ -1,10 +1,11 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { Sidebar } from "../components/Sidebar"
 import { Navbar } from "../components/Navbar"
-
 import { motion, AnimatePresence } from "framer-motion"
+
+// ...removed framer-motion imports...
 import {
   Plus,
   Search,
@@ -30,12 +31,14 @@ import {
   Shuffle,
   ArrowLeftRight,
   Info,
+  Loader2,
 } from "lucide-react"
 
 export default function Products() {
   const [showSuccessToast, setShowSuccessToast] = useState(false)
   const [showErrorToast, setShowErrorToast] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
 
   // What-If Modal State
   const [showWhatIfModal, setShowWhatIfModal] = useState(false)
@@ -74,6 +77,7 @@ export default function Products() {
     ingredients: [],
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [editingProductId, setEditingProductId] = useState(null) // Track which product is being edited
 
   const [viewMode, setViewMode] = useState("cards") // cards or table
   const [showQuickWins, setShowQuickWins] = useState(true)
@@ -185,37 +189,84 @@ export default function Products() {
     })
   }, [])
 
+  // Show success toast with custom message
+  const showSuccessMessage = useCallback((message) => {
+    setSuccessMessage(message)
+    setShowSuccessToast(true)
+    setTimeout(() => {
+      setShowSuccessToast(false)
+      setSuccessMessage("")
+    }, 4000)
+  }, [])
+
+  // Show error toast with custom message
+  const showErrorMessage = useCallback((message) => {
+    setErrorMessage(message)
+    setShowErrorToast(true)
+    setTimeout(() => {
+      setShowErrorToast(false)
+      setErrorMessage("")
+    }, 6000)
+  }, [])
+
   // Enhanced Error Toast Component with better styling and stock info
-  const ErrorToast = () => (
-    <AnimatePresence>
-      {showErrorToast && (
-        <motion.div
-          initial={{ opacity: 0, y: -50, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -50, scale: 0.9 }}
-          className="fixed top-4 right-4 z-[60] bg-white rounded-xl shadow-2xl border-l-4 border-red-500 p-4 flex items-start gap-3 max-w-md"
+  const ErrorToast = () => {
+    if (!showErrorToast) return null
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 300 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 300 }}
+        className="fixed top-4 right-4 z-[60] bg-white rounded-xl shadow-2xl border-l-4 border-red-500 p-4 flex items-start gap-3 max-w-md"
+      >
+        <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+          <AlertCircle className="w-6 h-6 text-red-600" />
+        </div>
+        <div className="flex-1">
+          <p className="font-semibold text-gray-900">Error</p>
+          <p className="text-sm text-gray-600 mt-1">{errorMessage}</p>
+          <div className="mt-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-2 mb-1">
+              <Info className="w-4 h-4 text-blue-600" />
+              <span className="text-xs font-medium text-blue-800">Quick Fix</span>
+            </div>
+            <p className="text-xs text-blue-700">
+              • Check if all required fields are filled
+              <br />• Verify ingredient quantities are valid
+              <br />• Ensure you have sufficient stock
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowErrorToast(false)}
+          className="p-1 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
         >
-          <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-            <AlertCircle className="w-6 h-6 text-red-600" />
+          <X className="w-4 h-4 text-gray-400" />
+        </button>
+      </motion.div>
+    )
+  }
+
+  // Enhanced Success Toast Component
+  const SuccessToast = () => (
+    <AnimatePresence>
+      {showSuccessToast && (
+        <motion.div
+          initial={{ opacity: 0, x: 300 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 300 }}
+          className="fixed top-4 right-4 z-[60] bg-white rounded-xl shadow-2xl border-l-4 border-green-500 p-4 flex items-center gap-3 max-w-sm"
+        >
+          <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+            <CheckCircle className="w-6 h-6 text-green-600" />
           </div>
           <div className="flex-1">
-            <p className="font-semibold text-gray-900">Insufficient Stock</p>
-            <p className="text-sm text-gray-600 mt-1">{errorMessage}</p>
-            <div className="mt-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="flex items-center gap-2 mb-1">
-                <Info className="w-4 h-4 text-blue-600" />
-                <span className="text-xs font-medium text-blue-800">Quick Fix</span>
-              </div>
-              <p className="text-xs text-blue-700">
-                • Check ingredient stock levels
-                <br />• Reduce ingredient quantities
-                <br />• Purchase more stock for this ingredient
-              </p>
-            </div>
+            <p className="font-semibold text-gray-900">Success!</p>
+            <p className="text-sm text-gray-600">{successMessage || "Operation completed successfully"}</p>
           </div>
           <button
-            onClick={() => setShowErrorToast(false)}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
+            onClick={() => setShowSuccessToast(false)}
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
           >
             <X className="w-4 h-4 text-gray-400" />
           </button>
@@ -224,92 +275,95 @@ export default function Products() {
     </AnimatePresence>
   )
 
+  // Memoized data fetching to prevent excessive re-renders
+  const fetchProductsAndSales = useCallback(async () => {
+    const token = localStorage.getItem("accessToken")
+    try {
+      // Fetch products
+      const productsRes = await fetch("https://busy-fool-backend.vercel.app/products", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      let productsData = []
+      if (productsRes.ok) {
+        productsData = await productsRes.json()
+      }
+
+      // Fetch sales
+      const salesRes = await fetch("https://busy-fool-backend.vercel.app/sales", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      let salesData = []
+      if (salesRes.ok) {
+        salesData = await salesRes.json()
+      }
+
+      // Aggregate sales by productId
+      const salesByProduct = {}
+      salesData.forEach((sale) => {
+        const productId = sale.product?.id
+        const qty = Number(sale.quantity) || 0
+        if (productId) {
+          salesByProduct[productId] = (salesByProduct[productId] || 0) + qty
+        }
+      })
+
+      // Inject numberOfSales into each product
+      const mergedProducts = productsData.map((product) => ({
+        ...product,
+        numberOfSales: salesByProduct[product.id] || 0,
+      }))
+      setProducts(mergedProducts)
+    } catch (error) {
+      console.error("Error fetching products:", error)
+      showErrorMessage("Failed to load products. Please refresh the page.")
+    }
+  }, [showErrorMessage])
+
+  const fetchIngredients = useCallback(async () => {
+    const token = localStorage.getItem("accessToken")
+    try {
+      const response = await fetch("https://busy-fool-backend.vercel.app/ingredients", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setAllIngredients(data)
+        setIngredients(data)
+      }
+    } catch (error) {
+      console.error("Error fetching ingredients:", error)
+    }
+  }, [])
+
+  const fetchStock = useCallback(async () => {
+    const token = localStorage.getItem("accessToken")
+    try {
+      const response = await fetch("https://busy-fool-backend.vercel.app/stock", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setStockData(data)
+      }
+    } catch (error) {
+      console.error("Error fetching stock:", error)
+    }
+  }, [])
+
   useEffect(() => {
     setIsLoadingProducts(true)
-    // Fetch products and sales, then merge numberOfSales into each product
-    const fetchProductsAndSales = async () => {
-      const token = localStorage.getItem("accessToken")
-      try {
-        // Fetch products
-        const productsRes = await fetch("https://busy-fool-backend-2-0.onrender.com/products", {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        let productsData = []
-        if (productsRes.ok) {
-          productsData = await productsRes.json()
-        }
 
-        // Fetch sales
-        const salesRes = await fetch("https://busy-fool-backend-2-0.onrender.com/sales", {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        let salesData = []
-        if (salesRes.ok) {
-          salesData = await salesRes.json()
-        }
-
-        // Aggregate sales by productId
-        const salesByProduct = {}
-        salesData.forEach((sale) => {
-          const productId = sale.product?.id
-          const qty = Number(sale.quantity) || 0
-          if (productId) {
-            salesByProduct[productId] = (salesByProduct[productId] || 0) + qty
-          }
-        })
-
-        // Inject numberOfSales into each product
-        const mergedProducts = productsData.map((product) => ({
-          ...product,
-          numberOfSales: salesByProduct[product.id] || 0,
-        }))
-        setProducts(mergedProducts)
-      } catch (error) {
-        console.error("Error fetching products:", error)
-      }
+    const loadData = async () => {
+      await Promise.all([fetchProductsAndSales(), fetchIngredients(), fetchStock()])
       setIsLoadingProducts(false)
     }
-    fetchProductsAndSales()
 
-    // Fetch all ingredients for selection and table
-    const fetchIngredients = async () => {
-      const token = localStorage.getItem("accessToken")
-      try {
-        const response = await fetch("https://busy-fool-backend-2-0.onrender.com/ingredients", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setAllIngredients(data)
-          setIngredients(data)
-        }
-      } catch (error) {
-        console.error("Error fetching ingredients:", error)
-      }
-    }
-    fetchIngredients()
-
-    // Fetch stock data
-    const fetchStock = async () => {
-      const token = localStorage.getItem("accessToken")
-      try {
-        const response = await fetch("https://busy-fool-backend-2-0.onrender.com/stock", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setStockData(data)
-        }
-      } catch (error) {
-        console.error("Error fetching stock:", error)
-      }
-    }
-    fetchStock()
-  }, [])
+    loadData()
+  }, [fetchProductsAndSales, fetchIngredients, fetchStock])
 
   // Inline What-If handler
   const handleSimulate = async (productId) => {
@@ -318,7 +372,7 @@ export default function Products() {
     setSimResult(null)
     try {
       const token = localStorage.getItem("accessToken")
-      const res = await fetch("https://busy-fool-backend-2-0.onrender.com/products/what-if", {
+      const res = await fetch("https://busy-fool-backend.vercel.app/products/what-if", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -350,13 +404,14 @@ export default function Products() {
     if (response?.status === 400 && error?.message) {
       const message = error.message.toLowerCase()
       if (message.includes("no available stock") || message.includes("insufficient") || message.includes("stock")) {
-        setErrorMessage(error.message)
-        setShowErrorToast(true)
-        setTimeout(() => setShowErrorToast(false), 7000) // Show for 7 seconds
+        showErrorMessage(error.message)
         return true // Indicates we handled the error
       }
     }
-    return false // Indicates we didn't handle the error
+
+    // Handle other errors
+    showErrorMessage(error?.message || "An error occurred. Please try again.")
+    return true
   }
 
   // Milk Swap Modal Component
@@ -402,7 +457,7 @@ export default function Products() {
 
       try {
         const token = localStorage.getItem("accessToken")
-        const res = await fetch("https://busy-fool-backend-2-0.onrender.com/products/milk-swap", {
+        const res = await fetch("https://busy-fool-backend.vercel.app/products/milk-swap", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -459,12 +514,7 @@ export default function Products() {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-        >
+        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -476,7 +526,7 @@ export default function Products() {
                   <p className="text-sm text-gray-500">{milkSwapProduct.name}</p>
                 </div>
               </div>
-              <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+              <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-xl">
                 <X className="w-5 h-5 text-gray-600" />
               </button>
             </div>
@@ -697,7 +747,7 @@ export default function Products() {
               </div>
             )}
           </div>
-        </motion.div>
+        </div>
       </div>
     )
   }
@@ -736,7 +786,7 @@ export default function Products() {
 
       try {
         const token = localStorage.getItem("accessToken")
-        const res = await fetch(`https://busy-fool-backend-2-0.onrender.com/products/${whatIfProduct.id}/quick-action`, {
+        const res = await fetch(`https://busy-fool-backend.vercel.app/products/${whatIfProduct.id}/quick-action`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -765,8 +815,7 @@ export default function Products() {
         // Update the product in the main products list
         setProducts((prev) => prev.map((p) => (p.id === localResult.id ? { ...p, ...localResult } : p)))
         setShowWhatIfModal(false)
-        setShowSuccessToast(true)
-        setTimeout(() => setShowSuccessToast(false), 3000)
+        showSuccessMessage("Price updated successfully!")
       }
     }
 
@@ -783,12 +832,7 @@ export default function Products() {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-        >
+        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -800,7 +844,7 @@ export default function Products() {
                   <p className="text-sm text-gray-500">{whatIfProduct.name}</p>
                 </div>
               </div>
-              <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+              <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-xl">
                 <X className="w-5 h-5 text-gray-600" />
               </button>
             </div>
@@ -1067,7 +1111,7 @@ export default function Products() {
               </div>
             )}
           </div>
-        </motion.div>
+        </div>
       </div>
     )
   }
@@ -1077,17 +1121,20 @@ export default function Products() {
     const token = localStorage.getItem("accessToken")
     if (!window.confirm("Are you sure you want to delete this product?")) return
     try {
-      const response = await fetch(`https://busy-fool-backend-2-0.onrender.com/products/${id}`, {
+      const response = await fetch(`https://busy-fool-backend.vercel.app/products/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
       if (response.ok) {
         setProducts((prev) => prev.filter((p) => p.id !== id))
+        showSuccessMessage("Product deleted successfully!")
       } else {
-        alert("Failed to delete product")
+        const errorData = await response.json()
+        handleApiError(errorData, response)
       }
     } catch (e) {
-      alert("Error deleting product")
+      console.error("Delete product error:", e)
+      showErrorMessage("Error deleting product. Please try again.")
     }
   }
 
@@ -1153,6 +1200,7 @@ export default function Products() {
   const handleEditProductSubmit = async () => {
     if (!selectedProduct) return
     setIsSubmitting(true)
+    setEditingProductId(selectedProduct.id) // Track which product is being edited
     const token = localStorage.getItem("accessToken")
     // Deduplicate and map to backend schema
     const seen = new Set()
@@ -1175,7 +1223,7 @@ export default function Products() {
       ingredients: selectedIngredients,
     }
     try {
-      const response = await fetch(`https://busy-fool-backend-2-0.onrender.com/products/${selectedProduct.id}`, {
+      const response = await fetch(`https://busy-fool-backend.vercel.app/products/${selectedProduct.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -1203,18 +1251,18 @@ export default function Products() {
         setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
         setShowEditProduct(false)
         setSelectedProduct(null)
+        showSuccessMessage("Product updated successfully!")
       } else {
         const errorData = await response.json()
         // Use enhanced error handling
-        if (!handleApiError(errorData, response)) {
-          alert(errorData.message || "Failed to update product")
-        }
+        handleApiError(errorData, response)
       }
     } catch (error) {
       console.error("Edit product error:", error)
-      alert("An error occurred. Please try again.")
+      showErrorMessage("An error occurred while updating the product. Please try again.")
     }
     setIsSubmitting(false)
+    setEditingProductId(null)
   }
 
   // Edit Product Modal
@@ -1482,9 +1530,10 @@ export default function Products() {
     }
 
     const handleSubmit = async () => {
-      setShowEditProduct(false); // Close modal immediately
+      setShowEditProduct(false) // Close modal immediately
       setError("")
       setIsSubmitting(true)
+      setEditingProductId(selectedProduct.id) // Track which product is being edited
       const token = localStorage.getItem("accessToken")
       // Deduplicate and map ingredients to backend schema
       const seen = new Set()
@@ -1507,7 +1556,7 @@ export default function Products() {
         ingredients: selectedIngredients,
       }
       try {
-        const response = await fetch(`https://busy-fool-backend-2-0.onrender.com/products/${selectedProduct.id}`, {
+        const response = await fetch(`https://busy-fool-backend.vercel.app/products/${selectedProduct.id}`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
@@ -1519,22 +1568,18 @@ export default function Products() {
           const updated = await response.json()
           setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
           setSelectedProduct(null)
-          setSuccess(true)
-          setTimeout(() => {
-            setSuccess(false)
-          }, 1200)
+          showSuccessMessage("Product updated successfully!")
         } else {
           const errorData = await response.json()
           // Use enhanced error handling
-          if (!handleApiError(errorData, response)) {
-            setError(errorData.message || "Failed to update product")
-          }
+          handleApiError(errorData, response)
         }
       } catch (error) {
         console.error("Edit product error:", error)
-        setError("An error occurred. Please try again.")
+        showErrorMessage("An error occurred while updating the product. Please try again.")
       }
       setIsSubmitting(false)
+      setEditingProductId(null)
     }
 
     return (
@@ -1629,24 +1674,33 @@ export default function Products() {
     )
   }
 
-  const handleAddProduct = async () => {
+  const handleAddProduct = async (formData) => {
     setIsSubmitting(true)
     const token = localStorage.getItem("accessToken")
+
+    // Clear any previous errors
+    setErrorMessage("")
+    setShowErrorToast(false)
+
     // Map to backend schema: { ingredient: id, quantity, unit, is_optional }
     const selectedIngredients = formData.ingredients.map((ing) => ({
       ingredientId: ing.id, // backend expects 'ingredientId' as string
       quantity: Number(ing.selectedQuantity ?? 1),
-      unit: ing.unit,
+      unit: ing.selectedUnit || ing.unit,
       is_optional: !!ing.is_optional,
     }))
+
     const payload = {
       name: formData.name,
       category: formData.category,
       sell_price: Number.parseFloat(formData.sell_price),
       ingredients: selectedIngredients,
     }
+
+    console.log("Adding product with payload:", payload)
+
     try {
-      const response = await fetch("https://busy-fool-backend-2-0.onrender.com/products", {
+      const response = await fetch("https://busy-fool-backend.vercel.app/products", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1654,69 +1708,77 @@ export default function Products() {
         },
         body: JSON.stringify(payload),
       })
+
+      console.log("Add product response status:", response.status)
+
       if (response.ok) {
         const newProduct = await response.json()
-        setProducts((prev) => [...prev, newProduct])
+        console.log("Successfully added product:", newProduct)
+
+        // Add the new product to the list with numberOfSales = 0
+        setProducts((prev) => [...prev, { ...newProduct, numberOfSales: 0 }])
+
+        // Reset form data
         setFormData({
           name: "",
           category: "",
           sell_price: "",
           ingredients: [],
         })
+
         setShowAddProduct(false)
-        setShowSuccessToast(true)
-        setTimeout(() => {
-          setShowSuccessToast(false)
-        }, 3000)
+        showSuccessMessage("Product added successfully!")
       } else {
         const errorData = await response.json()
         console.log("Add product error response:", errorData, "Status:", response.status)
+
         // Use enhanced error handling
-        if (!handleApiError(errorData, response)) {
-          alert(errorData.message || "Failed to add product")
-        }
+        handleApiError(errorData, response)
       }
     } catch (error) {
       console.error("Add product error:", error)
-      alert("An error occurred. Please try again.")
+      showErrorMessage("Network error occurred. Please check your connection and try again.")
     }
     setIsSubmitting(false)
   }
 
+  // Memoized filtered products to prevent excessive re-renders
+  const filteredProducts = useMemo(() => {
+    return products
+      .filter(
+        (product) =>
+          product.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+          (filterCategory === "all" || product.category === filterCategory) &&
+          (filterStatus === "all" || product.status === filterStatus),
+      )
+      .sort((a, b) => {
+        // Always use sum of sales.quantity for number of sales
+        const getNumberOfSales = (product) =>
+          Array.isArray(product.sales) ? product.sales.reduce((sum, sale) => sum + (Number(sale.quantity) || 0), 0) : 0
+        switch (sortBy) {
+          case "margin":
+            return (b.margin_percent || 0) - (a.margin_percent || 0)
+          case "sales": {
+            return getNumberOfSales(b) - getNumberOfSales(a)
+          }
+          case "price":
+            return (b.sell_price || 0) - (a.sell_price || 0)
+          case "name":
+            return a.name.localeCompare(b.name)
+          case "impact": {
+            // Compute impact as marginAmount * numberOfSales
+            const aMarginAmount = typeof a.margin_amount === "number" ? a.margin_amount : Number(a.margin_amount) || 0
+            const bMarginAmount = typeof b.margin_amount === "number" ? b.margin_amount : Number(b.margin_amount) || 0
+            return Math.abs(bMarginAmount * getNumberOfSales(b)) - Math.abs(aMarginAmount * getNumberOfSales(a))
+          }
+          default:
+            return 0
+        }
+      })
+  }, [products, searchTerm, filterCategory, filterStatus, sortBy])
+
   const categories = ["all", "Coffee", "Food", "Iced Drinks", "Pastries"]
   const statuses = ["all", "profitable", "breaking even", "losing money"]
-
-  const filteredProducts = products
-    .filter(
-      (product) =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        (filterCategory === "all" || product.category === filterCategory) &&
-        (filterStatus === "all" || product.status === filterStatus),
-    )
-    .sort((a, b) => {
-      // Always use sum of sales.quantity for number of sales
-      const getNumberOfSales = (product) =>
-        Array.isArray(product.sales) ? product.sales.reduce((sum, sale) => sum + (Number(sale.quantity) || 0), 0) : 0
-      switch (sortBy) {
-        case "margin":
-          return (b.margin_percent || 0) - (a.margin_percent || 0)
-        case "sales": {
-          return getNumberOfSales(b) - getNumberOfSales(a)
-        }
-        case "price":
-          return (b.sell_price || 0) - (a.sell_price || 0)
-        case "name":
-          return a.name.localeCompare(b.name)
-        case "impact": {
-          // Compute impact as marginAmount * numberOfSales
-          const aMarginAmount = typeof a.margin_amount === "number" ? a.margin_amount : Number(a.margin_amount) || 0
-          const bMarginAmount = typeof b.margin_amount === "number" ? b.margin_amount : Number(b.margin_amount) || 0
-          return Math.abs(bMarginAmount * getNumberOfSales(b)) - Math.abs(aMarginAmount * getNumberOfSales(a))
-        }
-        default:
-          return 0
-      }
-    })
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -1857,33 +1919,6 @@ export default function Products() {
       }
     })
   }, [])
-
-  const SuccessToast = () => (
-    <AnimatePresence>
-      {showSuccessToast && (
-        <motion.div
-          initial={{ opacity: 0, y: -50, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -50, scale: 0.9 }}
-          className="fixed top-4 right-4 z-[60] bg-white rounded-xl shadow-2xl border-l-4 border-green-500 p-4 flex items-center gap-3 max-w-sm"
-        >
-          <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-            <CheckCircle className="w-6 h-6 text-green-600" />
-          </div>
-          <div className="flex-1">
-            <p className="font-semibold text-gray-900">Success!</p>
-            <p className="text-sm text-gray-600">Product added successfully</p>
-          </div>
-          <button
-            onClick={() => setShowSuccessToast(false)}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X className="w-4 h-4 text-gray-400" />
-          </button>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
 
   // New AddProductModal: Multi-step, modern UX with stock validation
   const AddProductModal = useCallback(() => {
@@ -2128,62 +2163,13 @@ export default function Products() {
     }
 
     const handleSubmit = async () => {
-      setShowAddProduct(false); // Close modal immediately
+      setShowAddProduct(false) // Close modal immediately
       setError("")
-      setIsSubmitting(true)
-      const token = localStorage.getItem("accessToken")
-      const selectedIngredients = localForm.ingredients.map((ing) => {
-        const unit = ing.selectedUnit || ing.unit
-        const quantity = Number(ing.selectedQuantity ?? 1)
-        return {
-          ingredientId: ing.id,
-          quantity,
-          unit,
-          is_optional: !!ing.is_optional,
-        }
-      })
-      const payload = {
-        name: localForm.name,
-        category: localForm.category,
-        sell_price: Number.parseFloat(localForm.sell_price),
-        ingredients: selectedIngredients,
-      }
-      try {
-        const response = await fetch("https://busy-fool-backend-2-0.onrender.com/products", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        })
-        if (response.ok) {
-          const newProduct = await response.json()
-          setProducts((prev) => [...prev, newProduct])
-          setFormData({
-            name: "",
-            category: "",
-            sell_price: "",
-            ingredients: [],
-          })
-          setShowSuccessToast(true)
-          setTimeout(() => {
-            setShowSuccessToast(false)
-          }, 3000)
-        } else {
-          const errorData = await response.json()
-          console.log("Add product modal error:", errorData, "Status:", response.status)
-          // Use enhanced error handling
-          if (!handleApiError(errorData, response)) {
-            setError(errorData.message || "Failed to add product")
-          }
-        }
-      } catch (error) {
-        console.error("Add product modal error:", error)
-        setError("An error occurred. Please try again.")
-      }
-      setIsSubmitting(false)
+
+      // Call the main handleAddProduct function with the local form data
+      await handleAddProduct(localForm)
     }
+
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <motion.div
@@ -2279,11 +2265,14 @@ export default function Products() {
     getAvailableStock,
     getStockUnit,
     checkStockExceeded,
+    handleAddProduct,
   ])
 
-  const EnhancedProductCard = ({ product }) => {
+  // Enhanced Product Card with loading state
+  const EnhancedProductCard = React.memo(({ product }) => {
     // Show/hide ingredients dropdown
     const [showIngredients, setShowIngredients] = useState(false)
+    const isBeingEdited = editingProductId === product.id
 
     // Always map product.ingredients to correct display shape and deduplicate by id
     const safeIngredientsRaw = Array.isArray(product.ingredients) ? product.ingredients : []
@@ -2318,9 +2307,75 @@ export default function Products() {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         whileHover={{ y: -4, shadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 group"
+        className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 group relative ${
+          isBeingEdited ? "ring-2 ring-blue-500 ring-opacity-50" : ""
+        }`}
       >
-        <div className="relative">
+        {/* Enhanced Loading overlay for editing state */}
+        <AnimatePresence>
+          {isBeingEdited && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-gradient-to-br from-blue-50/95 via-white/95 to-indigo-50/95 backdrop-blur-sm z-20 flex items-center justify-center"
+            >
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+                className="flex flex-col items-center gap-4 p-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-blue-200/50"
+              >
+                {/* Animated loading spinner with pulsing effect */}
+                <div className="relative">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="w-10 h-10 border-3 border-blue-200 border-t-blue-600 rounded-full"
+                  />
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute inset-0 w-10 h-10 border-2 border-blue-300/30 rounded-full"
+                  />
+                </div>
+                
+                {/* Loading text with typewriter effect */}
+                <div className="text-center">
+                  <motion.p 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.2 }}
+                    className="text-sm font-semibold text-blue-700 mb-1"
+                  >
+                    Updating product...
+                  </motion.p>
+                  <motion.p 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.3 }}
+                    className="text-xs text-blue-500"
+                  >
+                    Please wait a moment
+                  </motion.p>
+                </div>
+                
+                {/* Loading progress bar */}
+                <div className="w-32 h-1 bg-blue-100 rounded-full overflow-hidden">
+                  <motion.div
+                    animate={{ x: ['-100%', '100%'] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    className="h-full w-1/3 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full"
+                  />
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className={`relative transition-all duration-300 ${isBeingEdited ? 'filter blur-[1px] brightness-95' : ''}`}>
           <div
             className={`h-2 ${
               product.status === "profitable"
@@ -2355,6 +2410,7 @@ export default function Products() {
                   whileTap={{ scale: 0.95 }}
                   className="p-2 hover:bg-gray-100 rounded-xl transition-colors opacity-0 group-hover:opacity-100"
                   onClick={() => handleEditProduct(product)}
+                  disabled={isBeingEdited}
                 >
                   <Edit className="w-4 h-4 text-gray-600" />
                 </motion.button>
@@ -2363,6 +2419,7 @@ export default function Products() {
                   whileTap={{ scale: 0.95 }}
                   className="p-2 hover:bg-gray-100 rounded-xl transition-colors opacity-0 group-hover:opacity-100"
                   onClick={() => handleDeleteProduct(product.id)}
+                  disabled={isBeingEdited}
                 >
                   <Trash2 className="w-4 h-4 text-red-500" />
                 </motion.button>
@@ -2449,6 +2506,7 @@ export default function Products() {
           <button
             onClick={toggleIngredients}
             className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors border-t border-gray-100"
+            disabled={isBeingEdited}
           >
             <div className="flex items-center gap-2">
               <Package className="w-4 h-4 text-gray-600" />
@@ -2501,11 +2559,12 @@ export default function Products() {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="bg-[#6B4226] text-white py-2 px-4 rounded-xl text-sm font-semibold hover:bg-[#5a3620] transition-all duration-200 flex items-center justify-center gap-2 shadow-sm"
+                className="bg-[#6B4226] text-white py-2 px-4 rounded-xl text-sm font-semibold hover:bg-[#5a3620] transition-all duration-200 flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
                 onClick={() => {
                   setWhatIfProduct(product)
                   setShowWhatIfModal(true)
                 }}
+                disabled={isBeingEdited}
               >
                 <Calculator className="w-4 h-4" />
                 What-If
@@ -2513,11 +2572,12 @@ export default function Products() {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="bg-purple-600 text-white py-2 px-4 rounded-xl text-sm font-semibold hover:bg-purple-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm"
+                className="bg-purple-600 text-white py-2 px-4 rounded-xl text-sm font-semibold hover:bg-purple-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
                 onClick={() => {
                   setMilkSwapProduct(product)
                   setShowMilkSwapModal(true)
                 }}
+                disabled={isBeingEdited}
               >
                 <Shuffle className="w-4 h-4" />
                 Swap
@@ -2527,7 +2587,7 @@ export default function Products() {
         </div>
       </motion.div>
     )
-  }
+  })
 
   const TableView = ({ products }) => (
     <motion.div
@@ -2569,15 +2629,26 @@ export default function Products() {
               // Use injected numberOfSales (from merged sales data)
               const numberOfSales = Number(product.numberOfSales) || 0
               const ingredientsCount = Array.isArray(product.ingredients) ? product.ingredients.length : 0
+              const isBeingEdited = editingProductId === product.id
+
               return (
                 <motion.tr
                   key={product.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="border-b border-gray-100 hover:bg-gray-50 transition-colors group"
+                  className={`border-b border-gray-100 hover:bg-gray-50 transition-colors group ${
+                    isBeingEdited ? "bg-blue-50" : ""
+                  }`}
                 >
-                  <td className="p-4 font-semibold text-gray-900">{product.name}</td>
+                  <td className="p-4 font-semibold text-gray-900 relative">
+                    {product.name}
+                    {isBeingEdited && (
+                      <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                      </div>
+                    )}
+                  </td>
                   <td className="p-4">
                     <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-sm">{product.category}</span>
                   </td>
@@ -2612,29 +2683,39 @@ export default function Products() {
                   <td className="p-4 text-center">
                     <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        className="p-1 hover:bg-gray-100 rounded"
+                        className="p-1 hover:bg-gray-100 rounded disabled:opacity-50"
                         onClick={() => {
                           setWhatIfProduct(product)
                           setShowWhatIfModal(true)
                         }}
                         title="What-If Analysis"
+                        disabled={isBeingEdited}
                       >
                         <Calculator className="w-4 h-4 text-[#6B4226]" />
                       </button>
                       <button
-                        className="p-1 hover:bg-gray-100 rounded"
+                        className="p-1 hover:bg-gray-100 rounded disabled:opacity-50"
                         onClick={() => {
                           setMilkSwapProduct(product)
                           setShowMilkSwapModal(true)
                         }}
                         title="Ingredient Swap"
+                        disabled={isBeingEdited}
                       >
                         <Shuffle className="w-4 h-4 text-purple-600" />
                       </button>
-                      <button className="p-1 hover:bg-gray-100 rounded" onClick={() => handleEditProduct(product)}>
+                      <button
+                        className="p-1 hover:bg-gray-100 rounded disabled:opacity-50"
+                        onClick={() => handleEditProduct(product)}
+                        disabled={isBeingEdited}
+                      >
                         <Edit className="w-4 h-4 text-gray-600" />
                       </button>
-                      <button className="p-1 hover:bg-gray-100 rounded" onClick={() => handleDeleteProduct(product.id)}>
+                      <button
+                        className="p-1 hover:bg-gray-100 rounded disabled:opacity-50"
+                        onClick={() => handleDeleteProduct(product.id)}
+                        disabled={isBeingEdited}
+                      >
                         <Trash2 className="w-4 h-4 text-red-500" />
                       </button>
                     </div>
@@ -2653,7 +2734,7 @@ export default function Products() {
     const token = localStorage.getItem("accessToken")
     if (!window.confirm("Are you sure you want to delete this ingredient?")) return
     try {
-      const response = await fetch(`https://busy-fool-backend-2-0.onrender.com/ingredients/${id}`, {
+      const response = await fetch(`https://busy-fool-backend.vercel.app/ingredients/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -2681,7 +2762,7 @@ export default function Products() {
   const handleSaveIngredient = async (id) => {
     const token = localStorage.getItem("accessToken")
     try {
-      const response = await fetch(`https://busy-fool-backend-2-0.onrender.com/ingredients/${id}`, {
+      const response = await fetch(`https://busy-fool-backend.vercel.app/ingredients/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -2701,64 +2782,6 @@ export default function Products() {
       alert("Error updating ingredient")
     }
   }
-
-    const handleSubmit = async () => {
-      setShowEditProduct(false); // Close modal immediately
-      setError("")
-      setIsSubmitting(true)
-      const token = localStorage.getItem("accessToken")
-      // Deduplicate and map ingredients to backend schema
-      const seen = new Set()
-      const selectedIngredients = localForm.ingredients
-        .filter((ing) => {
-          if (!ing.id || seen.has(ing.id)) return false
-          seen.add(ing.id)
-          return true
-        })
-        .map((ing) => ({
-          ingredientId: ing.id,
-          quantity: Number(ing.selectedQuantity ?? ing.quantity ?? 1),
-          unit: ing.selectedUnit || ing.unit,
-          is_optional: !!ing.is_optional,
-        }))
-      const payload = {
-        name: localForm.name,
-        category: localForm.category,
-        sell_price: Number.parseFloat(localForm.sell_price),
-        ingredients: selectedIngredients,
-      }
-      try {
-        const response = await fetch(`https://busy-fool-backend-2-0.onrender.com/products/${selectedProduct.id}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        })
-        if (response.ok) {
-          const updated = await response.json()
-          setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
-          setSelectedProduct(null)
-          setSuccess(true)
-          setTimeout(() => {
-            setSuccess(false)
-          }, 1200)
-        } else {
-          const errorData = await response.json()
-          // Use enhanced error handling
-          if (!handleApiError(errorData, response)) {
-            setError(errorData.message || "Failed to update product")
-          }
-        }
-      } catch (error) {
-        console.error("Edit product error:", error)
-        setError("An error occurred. Please try again.")
-      }
-      setIsSubmitting(false)
-    }
-// ...existing code...
-// (Removed stray code from previous patch. TableView and other components should be wrapped in a single parent element.)
 
   // --- Main Render ---
   return (
@@ -2788,8 +2811,9 @@ export default function Products() {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowAddProduct(true)}
                   className="bg-gradient-to-r from-[#6B4226] to-[#5a3620] text-white px-6 py-2 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all shadow-sm"
+                  disabled={isSubmitting}
                 >
-                  <Plus className="w-4 h-4" />
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                   Add Product
                 </motion.button>
               </div>
@@ -2849,7 +2873,7 @@ export default function Products() {
               ))}
             </motion.div>
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6"
@@ -2970,7 +2994,7 @@ export default function Products() {
             ) : (
               <TableView products={filteredProducts} />
             )}
-            {filteredProducts.length === 0 && (
+            {filteredProducts.length === 0 && !isLoadingProducts && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
