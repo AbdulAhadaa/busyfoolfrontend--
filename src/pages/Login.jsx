@@ -5,20 +5,29 @@ import { useForm } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Coffee, Mail, Lock, Eye, EyeOff, XCircle, ArrowRight, Shield, CheckCircle } from "lucide-react"
+import { Coffee, Mail, Lock, Eye, EyeOff, XCircle, ArrowRight, Shield, CheckCircle, AlertCircle } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [showToast, setShowToast] = useState(false)
   const [toastMsg, setToastMsg] = useState("")
-  const [showLoginToast, setShowLoginToast] = useState(false)
+  const [toastType, setToastType] = useState("success") // success, error, warning
 
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm()
+
+  // Show toast with auto-hide
+  const showToastMessage = (message, type = "success") => {
+    setToastMsg(message)
+    setToastType(type)
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 4000)
+  }
 
   const onSubmit = async (data) => {
     setIsLoading(true)
@@ -36,9 +45,7 @@ export default function Login() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        setToastMsg(errorData.message || "Login failed")
-        setShowToast(true)
-        setTimeout(() => setShowToast(false), 4000)
+        showToastMessage(errorData.message || "Login failed", "error")
         return
       }
 
@@ -48,51 +55,75 @@ export default function Login() {
         localStorage.setItem("accessToken", user.accessToken)
       }
 
-      // Show login toast and redirect
+      // Show success toast and redirect
+      showToastMessage("Login successful! Redirecting...", "success")
       localStorage.setItem("loginSuccess", "1")
-      window.location.href = "/welcome"
+
+      // Delay redirect to show toast
+      setTimeout(() => {
+        window.location.href = "/welcome"
+      }, 1500)
     } catch (error) {
-      setToastMsg("An error occurred. Please try again.")
-      setShowToast(true)
-      setTimeout(() => setShowToast(false), 4000)
+      showToastMessage("Network error occurred. Please try again.", "error")
     } finally {
       setIsLoading(false)
     }
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center px-4 py-8 relative overflow-hidden">
-      {/* Toast Notification */}
-      {(showToast || showLoginToast) && (
-        <div
-          className={`fixed top-6 right-6 z-50 transition-all duration-300 ${showToast || showLoginToast ? "opacity-100" : "opacity-0"}`}
+  // Toast Component
+  const Toast = () => (
+    <AnimatePresence>
+      {showToast && (
+        <motion.div
+          initial={{ opacity: 0, x: 300 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 300 }}
+          className="fixed top-6 right-6 z-50 transition-all duration-300"
         >
           <div
-            className={`flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border-l-4 ${showLoginToast ? "border-green-500 bg-green-50" : "border-amber-500 bg-amber-50"}`}
+            className={`flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border-l-4 ${
+              toastType === "success"
+                ? "border-green-500 bg-green-50"
+                : toastType === "error"
+                  ? "border-red-500 bg-red-50"
+                  : "border-yellow-500 bg-yellow-50"
+            }`}
           >
-            <div className={`rounded-full p-2 ${showLoginToast ? "bg-green-100" : "bg-amber-100"}`}>
-              {showLoginToast ? (
+            <div
+              className={`rounded-full p-2 ${
+                toastType === "success" ? "bg-green-100" : toastType === "error" ? "bg-red-100" : "bg-yellow-100"
+              }`}
+            >
+              {toastType === "success" ? (
                 <CheckCircle className="w-6 h-6 text-green-600" />
+              ) : toastType === "error" ? (
+                <XCircle className="w-6 h-6 text-red-600" />
               ) : (
-                <CheckCircle className="w-6 h-6 text-amber-600" />
+                <AlertCircle className="w-6 h-6 text-yellow-600" />
               )}
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-gray-900"></p>
+              <p className="font-semibold text-gray-900">
+                {toastType === "success" ? "Success!" : toastType === "error" ? "Error" : "Warning"}
+              </p>
               <p className="text-sm text-gray-700">{toastMsg}</p>
             </div>
             <button
-              onClick={() => {
-                setShowToast(false)
-                setShowLoginToast(false)
-              }}
+              onClick={() => setShowToast(false)}
               className="p-1 hover:bg-gray-100 rounded-full transition-colors"
             >
               <XCircle className="w-5 h-5 text-gray-400" />
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
+    </AnimatePresence>
+  )
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center px-4 py-8 relative overflow-hidden">
+      <Toast />
+
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-amber-200/20 to-orange-300/20 rounded-full blur-3xl animate-pulse"></div>

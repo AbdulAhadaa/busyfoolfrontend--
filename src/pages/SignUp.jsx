@@ -1,21 +1,35 @@
-import React, { useState } from "react"
+"use client"
+
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Coffee, User, Mail, Lock, Eye, EyeOff, CheckCircle, XCircle } from "lucide-react"
+import { Coffee, User, Mail, Lock, Eye, EyeOff, CheckCircle, XCircle, AlertCircle } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 
 export default function Signup() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  
+  const [showToast, setShowToast] = useState(false)
+  const [toastMsg, setToastMsg] = useState("")
+  const [toastType, setToastType] = useState("success") // success, error, warning
+
   const {
     register,
     handleSubmit,
     watch,
     formState: { errors },
   } = useForm()
+
+  // Show toast with auto-hide
+  const showToastMessage = (message, type = "success") => {
+    setToastMsg(message)
+    setToastType(type)
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 4000)
+  }
 
   const onSubmit = async (data) => {
     setIsLoading(true)
@@ -32,19 +46,21 @@ export default function Signup() {
           password: data.password,
           role: "owner", // or set dynamically if needed
         }),
-      });
+      })
 
       if (!registerResponse.ok) {
-        const errorData = await registerResponse.json();
-        alert(errorData.message || "Registration failed");
-        setIsLoading(false);
-        return;
+        const errorData = await registerResponse.json()
+        showToastMessage(errorData.message || "Registration failed", "error")
+        setIsLoading(false)
+        return
       }
 
-      const user = await registerResponse.json();
+      const user = await registerResponse.json()
       if (user.id) {
-        localStorage.setItem("userId", user.id);
+        localStorage.setItem("userId", user.id)
       }
+
+      showToastMessage("Registration successful! Logging you in...", "success")
 
       // Automatically log in after registration
       const loginResponse = await fetch("https://busy-fool-backend.vercel.app/auth/login", {
@@ -56,33 +72,90 @@ export default function Signup() {
           email: data.email,
           password: data.password,
         }),
-      });
+      })
 
       if (!loginResponse.ok) {
-        const errorData = await loginResponse.json();
-        alert(errorData.message || "Login after registration failed");
-        setIsLoading(false);
-        return;
+        const errorData = await loginResponse.json()
+        showToastMessage(errorData.message || "Login after registration failed", "error")
+        setIsLoading(false)
+        return
       }
 
-      const loginUser = await loginResponse.json();
+      const loginUser = await loginResponse.json()
       if (loginUser.accessToken) {
-        localStorage.setItem("accessToken", loginUser.accessToken);
+        localStorage.setItem("accessToken", loginUser.accessToken)
       }
 
       // Registration and login successful, redirect to welcome page
-      localStorage.setItem("loginSuccess", "1");
-      window.location.href = "/welcome";
+      showToastMessage("Welcome! Redirecting to dashboard...", "success")
+      localStorage.setItem("loginSuccess", "1")
+
+      // Delay redirect to show toast
+      setTimeout(() => {
+        window.location.href = "/welcome"
+      }, 1500)
     } catch (error) {
-      alert("An error occurred. Please try again.");
-      setIsLoading(false);
+      showToastMessage("Network error occurred. Please try again.", "error")
+      setIsLoading(false)
     }
-  };
+  }
 
   const password = watch("password", "")
 
+  // Toast Component
+  const Toast = () => (
+    <AnimatePresence>
+      {showToast && (
+        <motion.div
+          initial={{ opacity: 0, x: 300 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 300 }}
+          className="fixed top-6 right-6 z-50 transition-all duration-300"
+        >
+          <div
+            className={`flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border-l-4 ${
+              toastType === "success"
+                ? "border-green-500 bg-green-50"
+                : toastType === "error"
+                  ? "border-red-500 bg-red-50"
+                  : "border-yellow-500 bg-yellow-50"
+            }`}
+          >
+            <div
+              className={`rounded-full p-2 ${
+                toastType === "success" ? "bg-green-100" : toastType === "error" ? "bg-red-100" : "bg-yellow-100"
+              }`}
+            >
+              {toastType === "success" ? (
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              ) : toastType === "error" ? (
+                <XCircle className="w-6 h-6 text-red-600" />
+              ) : (
+                <AlertCircle className="w-6 h-6 text-yellow-600" />
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-gray-900">
+                {toastType === "success" ? "Success!" : toastType === "error" ? "Error" : "Warning"}
+              </p>
+              <p className="text-sm text-gray-700">{toastMsg}</p>
+            </div>
+            <button
+              onClick={() => setShowToast(false)}
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <XCircle className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center px-4 py-8 relative overflow-hidden">
+      <Toast />
+
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-amber-200/20 to-orange-300/20 rounded-full blur-3xl animate-pulse"></div>
@@ -97,7 +170,7 @@ export default function Signup() {
             {/* Decorative elements */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-white/10 to-transparent rounded-full blur-2xl"></div>
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-yellow-400/20 to-transparent rounded-full blur-xl"></div>
-            
+
             <div className="relative z-10">
               <div className="flex items-center space-x-3 mb-6">
                 <div className="p-3 bg-white/10 backdrop-blur-sm rounded-2xl">
@@ -105,15 +178,15 @@ export default function Signup() {
                 </div>
                 <div className="w-12 h-1 bg-gradient-to-r from-amber-300 to-orange-400 rounded-full"></div>
               </div>
-              
+
               <h1 className="text-5xl font-bold leading-tight bg-gradient-to-r from-white to-amber-100 bg-clip-text text-transparent mb-4">
                 Create Your Account
               </h1>
-              
+
               <p className="text-xl text-amber-100/90 leading-relaxed mb-8">
                 Register to access your business dashboard and manage your operations efficiently.
               </p>
-              
+
               <div className="space-y-4">
                 <div className="flex items-center space-x-3 text-amber-100/80">
                   <CheckCircle className="w-5 h-5" />
@@ -162,7 +235,7 @@ export default function Signup() {
                     <Input
                       id="name"
                       className={`pl-12 h-14 bg-white/70 border-2 rounded-xl transition-all duration-300 focus:border-amber-500 focus:bg-white hover:bg-white/90 ${
-                        errors.name ? 'border-red-400 focus:border-red-500' : 'border-gray-200'
+                        errors.name ? "border-red-400 focus:border-red-500" : "border-gray-200"
                       }`}
                       placeholder="Enter your full name"
                       {...register("name", { required: "Name is required" })}
@@ -187,7 +260,7 @@ export default function Signup() {
                       id="email"
                       type="email"
                       className={`pl-12 h-14 bg-white/70 border-2 rounded-xl transition-all duration-300 focus:border-amber-500 focus:bg-white hover:bg-white/90 ${
-                        errors.email ? 'border-red-400 focus:border-red-500' : 'border-gray-200'
+                        errors.email ? "border-red-400 focus:border-red-500" : "border-gray-200"
                       }`}
                       placeholder="your@email.com"
                       {...register("email", {
@@ -218,7 +291,7 @@ export default function Signup() {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       className={`pl-12 pr-12 h-14 bg-white/70 border-2 rounded-xl transition-all duration-300 focus:border-amber-500 focus:bg-white hover:bg-white/90 ${
-                        errors.password ? 'border-red-400 focus:border-red-500' : 'border-gray-200'
+                        errors.password ? "border-red-400 focus:border-red-500" : "border-gray-200"
                       }`}
                       placeholder="Enter your password"
                       {...register("password", {
@@ -231,7 +304,7 @@ export default function Signup() {
                       className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-amber-600 transition-colors flex items-center gap-1"
                     >
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      <span className="text-xs font-medium text-gray-600">{showPassword ? 'Hide' : 'Show'}</span>
+                      <span className="text-xs font-medium text-gray-600">{showPassword ? "Hide" : "Show"}</span>
                     </button>
                     {errors.password && (
                       <div className="flex items-center mt-2 text-red-500 text-sm">
@@ -253,12 +326,12 @@ export default function Signup() {
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
                       className={`pl-12 pr-12 h-14 bg-white/70 border-2 rounded-xl transition-all duration-300 focus:border-amber-500 focus:bg-white hover:bg-white/90 ${
-                        errors.confirmPassword ? 'border-red-400 focus:border-red-500' : 'border-gray-200'
+                        errors.confirmPassword ? "border-red-400 focus:border-red-500" : "border-gray-200"
                       }`}
                       placeholder="Confirm your password"
                       {...register("confirmPassword", {
                         required: "Confirm password is required",
-                        validate: value => value === password || "Passwords do not match"
+                        validate: (value) => value === password || "Passwords do not match",
                       })}
                     />
                     <button
@@ -267,7 +340,7 @@ export default function Signup() {
                       className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-amber-600 transition-colors flex items-center gap-1"
                     >
                       {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      <span className="text-xs font-medium text-gray-600">{showConfirmPassword ? 'Hide' : 'Show'}</span>
+                      <span className="text-xs font-medium text-gray-600">{showConfirmPassword ? "Hide" : "Show"}</span>
                     </button>
                     {errors.confirmPassword && (
                       <div className="flex items-center mt-2 text-red-500 text-sm">
