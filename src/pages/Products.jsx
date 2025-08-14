@@ -275,11 +275,11 @@ export default function Products() {
     </AnimatePresence>
   )
 
-  // Memoized data fetching to prevent excessive re-renders
+  // Memoized data fetching to prevent excessive re-renders - UPDATED to use quantity_sold from products API
   const fetchProductsAndSales = useCallback(async () => {
     const token = localStorage.getItem("accessToken")
     try {
-      // Fetch products
+      // Fetch products - now includes quantity_sold field
       const productsRes = await fetch("https://busy-fool-backend.vercel.app/products", {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -288,29 +288,10 @@ export default function Products() {
         productsData = await productsRes.json()
       }
 
-      // Fetch sales
-      const salesRes = await fetch("https://busy-fool-backend.vercel.app/sales", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      let salesData = []
-      if (salesRes.ok) {
-        salesData = await salesRes.json()
-      }
-
-      // Aggregate sales by productId
-      const salesByProduct = {}
-      salesData.forEach((sale) => {
-        const productId = sale.product?.id
-        const qty = Number(sale.quantity) || 0
-        if (productId) {
-          salesByProduct[productId] = (salesByProduct[productId] || 0) + qty
-        }
-      })
-
-      // Inject numberOfSales into each product
+      // Use quantity_sold from products API instead of calculating from sales
       const mergedProducts = productsData.map((product) => ({
         ...product,
-        numberOfSales: salesByProduct[product.id] || 0,
+        numberOfSales: Number(product.quantity_sold) || 0, // Use quantity_sold from API
       }))
       setProducts(mergedProducts)
     } catch (error) {
@@ -812,8 +793,19 @@ export default function Products() {
 
     const handleApplyChanges = () => {
       if (localResult) {
-        // Update the product in the main products list
-        setProducts((prev) => prev.map((p) => (p.id === localResult.id ? { ...p, ...localResult } : p)))
+        // Update the product in the main products list - PRESERVE numberOfSales
+        setProducts((prev) =>
+          prev.map((p) =>
+            p.id === localResult.id
+              ? {
+                  ...p,
+                  ...localResult,
+                  numberOfSales: p.numberOfSales, // Preserve the numberOfSales
+                  quantity_sold: p.quantity_sold, // Preserve the quantity_sold
+                }
+              : p,
+          ),
+        )
         setShowWhatIfModal(false)
         showSuccessMessage("Price updated successfully!")
       }
@@ -1248,7 +1240,20 @@ export default function Products() {
             }
           })
         }
-        setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+
+        // PRESERVE numberOfSales and quantity_sold when updating
+        setProducts((prev) =>
+          prev.map((p) =>
+            p.id === updated.id
+              ? {
+                  ...updated,
+                  numberOfSales: p.numberOfSales, // Preserve the numberOfSales
+                  quantity_sold: p.quantity_sold, // Preserve the quantity_sold
+                }
+              : p,
+          ),
+        )
+
         setShowEditProduct(false)
         setSelectedProduct(null)
         showSuccessMessage("Product updated successfully!")
@@ -1566,7 +1571,20 @@ export default function Products() {
         })
         if (response.ok) {
           const updated = await response.json()
-          setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+
+          // PRESERVE numberOfSales and quantity_sold when updating
+          setProducts((prev) =>
+            prev.map((p) =>
+              p.id === updated.id
+                ? {
+                    ...updated,
+                    numberOfSales: p.numberOfSales, // Preserve the numberOfSales
+                    quantity_sold: p.quantity_sold, // Preserve the quantity_sold
+                  }
+                : p,
+            ),
+          )
+
           setSelectedProduct(null)
           showSuccessMessage("Product updated successfully!")
         } else {
@@ -1752,9 +1770,8 @@ export default function Products() {
           (filterStatus === "all" || product.status === filterStatus),
       )
       .sort((a, b) => {
-        // Always use sum of sales.quantity for number of sales
-        const getNumberOfSales = (product) =>
-          Array.isArray(product.sales) ? product.sales.reduce((sum, sale) => sum + (Number(sale.quantity) || 0), 0) : 0
+        // Use quantity_sold from API instead of calculating from sales
+        const getNumberOfSales = (product) => Number(product.quantity_sold) || 0
         switch (sortBy) {
           case "margin":
             return (b.margin_percent || 0) - (a.margin_percent || 0)
@@ -2268,7 +2285,7 @@ export default function Products() {
     handleAddProduct,
   ])
 
-  // Enhanced Product Card with loading state
+  // Enhanced Product Card with loading state - MEMOIZED to prevent re-renders
   const EnhancedProductCard = React.memo(({ product }) => {
     // Show/hide ingredients dropdown
     const [showIngredients, setShowIngredients] = useState(false)
@@ -2332,19 +2349,19 @@ export default function Products() {
                 <div className="relative">
                   <motion.div
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
                     className="w-10 h-10 border-3 border-blue-200 border-t-blue-600 rounded-full"
                   />
                   <motion.div
                     animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
                     className="absolute inset-0 w-10 h-10 border-2 border-blue-300/30 rounded-full"
                   />
                 </div>
-                
+
                 {/* Loading text with typewriter effect */}
                 <div className="text-center">
-                  <motion.p 
+                  <motion.p
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.2 }}
@@ -2352,7 +2369,7 @@ export default function Products() {
                   >
                     Updating product...
                   </motion.p>
-                  <motion.p 
+                  <motion.p
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.3 }}
@@ -2361,12 +2378,12 @@ export default function Products() {
                     Please wait a moment
                   </motion.p>
                 </div>
-                
+
                 {/* Loading progress bar */}
                 <div className="w-32 h-1 bg-blue-100 rounded-full overflow-hidden">
                   <motion.div
-                    animate={{ x: ['-100%', '100%'] }}
-                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    animate={{ x: ["-100%", "100%"] }}
+                    transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
                     className="h-full w-1/3 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full"
                   />
                 </div>
@@ -2375,7 +2392,9 @@ export default function Products() {
           )}
         </AnimatePresence>
 
-        <div className={`relative transition-all duration-300 ${isBeingEdited ? 'filter blur-[1px] brightness-95' : ''}`}>
+        <div
+          className={`relative transition-all duration-300 ${isBeingEdited ? "filter blur-[1px] brightness-95" : ""}`}
+        >
           <div
             className={`h-2 ${
               product.status === "profitable"
