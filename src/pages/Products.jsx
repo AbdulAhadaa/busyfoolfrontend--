@@ -1131,6 +1131,8 @@ export default function Products() {
 
   // Map product ingredients to match ingredient selection UI for edit modal
   const handleEditProduct = (product) => {
+  // Capture scroll position
+  window._productScrollY = window.scrollY;
     setSelectedProduct(product)
     // Map and deduplicate ingredients by id
     const rawIngredients = Array.isArray(product.ingredients)
@@ -1271,6 +1273,12 @@ export default function Products() {
 
   // Edit Product Modal
   const EditProductModal = () => {
+    // Restore scroll position on mount
+    React.useEffect(() => {
+      if (window._productScrollY !== undefined) {
+        window.scrollTo({ top: window._productScrollY });
+      }
+    }, []);
     const [step, setStep] = React.useState(0)
     const [search, setSearch] = React.useState("")
     const [localForm, setLocalForm] = React.useState(editFormData)
@@ -2424,15 +2432,17 @@ export default function Products() {
                 </div>
               </div>
               <div className="flex gap-1">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors opacity-0 group-hover:opacity-100"
-                  onClick={() => handleEditProduct(product)}
+                <button
+                  type="button"
+                  className="p-2 rounded-xl opacity-0 group-hover:opacity-100"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleEditProduct(product);
+                  }}
                   disabled={isBeingEdited}
                 >
                   <Edit className="w-4 h-4 text-gray-600" />
-                </motion.button>
+                </button>
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}

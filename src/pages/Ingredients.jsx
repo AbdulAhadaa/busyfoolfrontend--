@@ -448,13 +448,15 @@ export default function BusyFoolIngredients() {
   }
 
   const handleImportCSV = async (event) => {
-    const file = event.target.files[0]
-    if (!file) return
-    setCsvImporting(true)
-    showSuccessMessage("Importing CSV... Please wait.")
-    const token = localStorage.getItem("accessToken")
-    const formData = new FormData()
-    formData.append("file", file)
+  const file = event.target.files[0]
+  if (!file) return
+  setCsvImporting(true)
+  showSuccessMessage("Importing CSV... Please wait.")
+  const token = localStorage.getItem("accessToken")
+  const formData = new FormData()
+  formData.append("file", file)
+  // Log FormData for debugging
+  console.log("CSV Import FormData:", formData.get("file"))
 
     try {
       const response = await fetch("https://busy-fool-backend.vercel.app/ingredients/import-csv", {
