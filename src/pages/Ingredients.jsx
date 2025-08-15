@@ -442,21 +442,14 @@ export default function BusyFoolIngredients() {
     showSuccessMessage("CSV exported successfully!")
   }
 
-  const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
-  }
-
   const handleImportCSV = async (event) => {
-  const file = event.target.files[0]
-  if (!file) return
-  setCsvImporting(true)
-  showSuccessMessage("Importing CSV... Please wait.")
-  const token = localStorage.getItem("accessToken")
-  const formData = new FormData()
-  formData.append("file", file)
-  // Log FormData for debugging
-  console.log("CSV Import FormData:", formData.get("file"))
+    const file = event.target.files[0]
+    if (!file) return
+    setCsvImporting(true)
+    showSuccessMessage("Importing CSV... Please wait.")
+    const token = localStorage.getItem("accessToken")
+    const formData = new FormData()
+    formData.append("file", file)
 
     try {
       const response = await fetch("https://busy-fool-backend.vercel.app/ingredients/import-csv", {
@@ -494,6 +487,13 @@ export default function BusyFoolIngredients() {
       showErrorMessage("An error occurred during import.")
     }
     setCsvImporting(false)
+    // Reset the file input so the same file can be selected again
+    event.target.value = ""
+  }
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
   }
 
   const modalVariants = {
