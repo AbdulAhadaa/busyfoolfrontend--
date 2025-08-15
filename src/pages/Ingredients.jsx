@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
+import { FileText, Info, CheckCircle2,  Copy, Check } from "lucide-react"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
@@ -68,6 +69,10 @@ export default function BusyFoolIngredients() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [formErrors, setFormErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+const [showGuidelinesModal, setShowGuidelinesModal] = useState(false)
+const [csvCopied, setCsvCopied] = useState(false)
+
 
   // Toast states
   const [showSuccessToast, setShowSuccessToast] = useState(false)
@@ -387,6 +392,21 @@ export default function BusyFoolIngredients() {
     }))
   }
 
+const handleCopyCsvExample = async () => {
+  const csvExample = `name,unit,quantity,purchase_price,waste_percent,supplier
+Espresso Beans,kg,5,100,2,SupplierA
+
+Chocolate,kg,2,80,3,SupplierD`
+
+  try {
+    await navigator.clipboard.writeText(csvExample)
+    setCsvCopied(true)
+    setTimeout(() => setCsvCopied(false), 2000)
+  } catch (err) {
+    console.error('Failed to copy text: ', err)
+  }
+}
+
   const getStockStatus = (level) => {
     if (level <= 5) return { color: "destructive", text: "Low Stock", icon: AlertTriangle }
     if (level <= 10) return { color: "default", text: "Medium", icon: AlertCircle }
@@ -523,58 +543,71 @@ export default function BusyFoolIngredients() {
                   <h1 className="text-3xl font-bold text-amber-900 tracking-tight">Ingredient Management</h1>
                   <p className="text-amber-700 mt-1 text-sm">Optimize your coffee shop's inventory with ease</p>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                  <Button
-                    onClick={() => setShowAddModal(true)}
-                    className="w-full sm:w-auto bg-gradient-to-r from-[#6B4226] to-[#5a3620] text-white px-6 py-2 rounded-xl flex items-center justify-center gap-2 hover:shadow-lg transition-all shadow-sm"
-                    disabled={isSubmitting}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Ingredient
-                  </Button>
+             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              {/* CSV Guidelines Button */}
+  <Button
+    onClick={() => setShowGuidelinesModal(true)}
+      variant="outline"
+    className="bg-white/80 hover:bg-white text-amber-700 border-amber-200 hover:border-amber-300 px-4 py-2 rounded-xl flex items-center gap-2 hover:shadow-md transition-all"
+    type="button"
+  >
+    <FileText className="w-4 h-4 mr-2" />
+    CSV Guidelines
+  </Button>
 
-                  {/* Export CSV Button */}
-                  <Button
-                    onClick={exportToCSV}
-                    className="w-full sm:w-auto bg-gradient-to-r from-[#6B4226] to-[#5a3620] text-white px-6 py-2 rounded-xl flex items-center justify-center gap-2 hover:shadow-lg transition-all shadow-sm"
-                    disabled={isSubmitting}
-                    type="button"
-                  >
-                    {isSubmitting ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Download className="w-4 h-4 mr-2" />
-                    )}
-                    Export CSV
-                  </Button>
+  <Button
+    onClick={() => setShowAddModal(true)}
+    className="w-full sm:w-auto bg-gradient-to-r from-[#6B4226] to-[#5a3620] text-white px-6 py-2 rounded-xl flex items-center justify-center gap-2 hover:shadow-lg transition-all shadow-sm"
+    disabled={isSubmitting}
+  >
+    <Plus className="w-4 h-4 mr-2" />
+    Add Ingredient
+  </Button>
 
-                  {/* Import CSV Button */}
-                  <input
-                    type="file"
-                    accept=".csv"
-                    style={{ display: "none" }}
-                    onChange={handleImportCSV}
-                    disabled={csvImporting}
-                    id="csv-upload"
-                  />
-                  <label htmlFor="csv-upload" className="w-full sm:w-auto cursor-pointer">
-                    <Button
-                      className="w-full sm:w-auto bg-gradient-to-r from-[#55341E] to-[#6B4226] text-white px-6 py-2 rounded-xl flex items-center justify-center gap-2 hover:shadow-lg transition-all shadow-sm"
-                      disabled={csvImporting}
-                      type="button"
-                      asChild
-                    >
-                      <span>
-                        {csvImporting ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <Upload className="w-4 h-4 mr-2" />
-                        )}
-                        {csvImporting ? "Importing..." : "Import CSV"}
-                      </span>
-                    </Button>
-                  </label>
-                </div>
+ 
+  {/* Export CSV Button */}
+  <Button
+    onClick={exportToCSV}
+    className="w-full sm:w-auto bg-gradient-to-r from-[#6B4226] to-[#5a3620] text-white px-6 py-2 rounded-xl flex items-center justify-center gap-2 hover:shadow-lg transition-all shadow-sm"
+    disabled={isSubmitting}
+    type="button"
+  >
+    {isSubmitting ? (
+      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+    ) : (
+      <Download className="w-4 h-4 mr-2" />
+    )}
+    Export CSV
+  </Button>
+
+  {/* Import CSV Button */}
+  <input
+    type="file"
+    accept=".csv"
+    style={{ display: "none" }}
+    onChange={handleImportCSV}
+    disabled={csvImporting}
+    id="csv-upload"
+  />
+  <label htmlFor="csv-upload" className="w-full sm:w-auto cursor-pointer">
+    <Button
+      className="w-full sm:w-auto bg-gradient-to-r from-[#55341E] to-[#6B4226] text-white px-6 py-2 rounded-xl flex items-center justify-center gap-2 hover:shadow-lg transition-all shadow-sm"
+      disabled={csvImporting}
+      type="button"
+      asChild
+    >
+      <span>
+        {csvImporting ? (
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+        ) : (
+          <Upload className="w-4 h-4 mr-2" />
+        )}
+        {csvImporting ? "Importing..." : "Import CSV"}
+      </span>
+    </Button>
+  </label>
+</div>
+
               </motion.div>
 
               {/* Filters */}
@@ -853,6 +886,208 @@ export default function BusyFoolIngredients() {
                   </Dialog>
                 )}
               </AnimatePresence>
+ <AnimatePresence>
+  {showGuidelinesModal && (
+    <Dialog open={showGuidelinesModal} onOpenChange={setShowGuidelinesModal}>
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-white/98 backdrop-blur-md border-blue-100">
+        <DialogHeader className="pb-6">
+          <DialogTitle className="text-blue-900 text-2xl tracking-tight flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-xl">
+              <FileText className="w-6 h-6 text-blue-600" />
+            </div>
+            CSV Upload Guidelines for Ingredients
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-6">
+          {/* Match Ingredient Names */}
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-xl border border-amber-200">
+            <div className="flex items-start gap-3">
+              <div className="p-1.5 bg-amber-200 rounded-lg flex-shrink-0 mt-0.5">
+                <AlertTriangle className="w-4 h-4 text-amber-700" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-amber-900 mb-2">Match Ingredient Names</h3>
+                <p className="text-amber-800 text-sm leading-relaxed">
+                  Use exact ingredient names from your existing BusyFool inventory to ensure accurate stock tracking and cost calculations.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Required Columns */}
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="p-1.5 bg-green-200 rounded-lg flex-shrink-0">
+                <CheckCircle2 className="w-4 h-4 text-green-700" />
+              </div>
+              <h3 className="font-semibold text-green-900">Required Columns</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 ml-10">
+              {[
+                { name: 'name', desc: 'Ingredient identifier' },
+                { name: 'unit', desc: 'Measurement unit (e.g., kg, l, g, ml)' },
+                { name: 'quantity', desc: 'Amount of ingredient purchased' },
+                { name: 'purchase_price', desc: 'Total cost of the purchased quantity' },
+                { name: 'waste_percent', desc: 'Percentage of waste (e.g., 2 for 2%)' },
+                { name: 'supplier', desc: 'Name of the supplier' }
+              ].map((col, index) => (
+                <div key={index} className="flex flex-col p-3 bg-white/60 rounded-lg border border-green-100">
+                  <code className="font-mono text-sm font-semibold text-green-700">{col.name}</code>
+                  <span className="text-xs text-green-600 mt-1">{col.desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Guidelines */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Quantity and Purchase Price */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+              <div className="flex items-start gap-3">
+                <div className="p-1.5 bg-blue-200 rounded-lg flex-shrink-0 mt-0.5">
+                  <Info className="w-4 h-4 text-blue-700" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-blue-900 mb-2">Quantity and Purchase Price Guidelines</h3>
+                  <p className="text-blue-800 text-sm leading-relaxed mb-3">
+                    Enter the total quantity and purchase price for the batch, not per unit.
+                  </p>
+                  <div className="bg-white/60 p-3 rounded-lg border border-blue-100">
+                    <p className="text-xs font-mono text-blue-700">
+                      Example: 5 kg of Espresso Beans at $100<br/>
+                      quantity: 5, purchase_price: 100
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Avoid New Units */}
+            <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-4 rounded-xl border border-purple-200">
+              <div className="flex items-start gap-3">
+                <div className="p-1.5 bg-purple-200 rounded-lg flex-shrink-0 mt-0.5">
+                  <AlertTriangle className="w-4 h-4 text-purple-700" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-purple-900 mb-2">Avoid New Units</h3>
+                  <p className="text-purple-800 text-sm leading-relaxed">
+                    Ensure units match existing inventory units (e.g., kg, l). Mismatched units may lead to stock calculation errors.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Supported Formats */}
+          <div className="bg-gradient-to-r from-gray-50 to-slate-50 p-4 rounded-xl border border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 bg-gray-200 rounded-lg">
+                <FileText className="w-4 h-4 text-gray-700" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Supported Formats</h3>
+                <p className="text-gray-700 text-sm mt-1">
+                  <code className="bg-gray-200 px-2 py-1 rounded font-mono text-xs">.csv</code> files only
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Example CSV Format */}
+          <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-xl border border-indigo-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-indigo-900 flex items-center gap-2">
+                <div className="p-1 bg-indigo-200 rounded-lg">
+                  <FileText className="w-4 h-4 text-indigo-700" />
+                </div>
+                Example CSV Format
+              </h3>
+              <Button
+                onClick={handleCopyCsvExample}
+                size="sm"
+                variant="outline"
+                className="border-indigo-300 hover:bg-indigo-100 text-indigo-700"
+              >
+                {csvCopied ? (
+                  <>
+                    <Check className="w-3 h-3 mr-1" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3 mr-1" />
+                    Copy
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            {/* Table Format */}
+            <div className="bg-white rounded-lg border border-indigo-200 overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-indigo-100/70">
+                    <tr>
+                      <th className="text-left p-3 font-semibold text-indigo-900 border-r border-indigo-200 last:border-r-0">name</th>
+                      <th className="text-left p-3 font-semibold text-indigo-900 border-r border-indigo-200 last:border-r-0">unit</th>
+                      <th className="text-left p-3 font-semibold text-indigo-900 border-r border-indigo-200 last:border-r-0">quantity</th>
+                      <th className="text-left p-3 font-semibold text-indigo-900 border-r border-indigo-200 last:border-r-0">purchase_price</th>
+                      <th className="text-left p-3 font-semibold text-indigo-900 border-r border-indigo-200 last:border-r-0">waste_percent</th>
+                      <th className="text-left p-3 font-semibold text-indigo-900">supplier</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ['Espresso Beans', 'kg', '5', '100', '2', 'SupplierA'],
+                 
+                      ['Chocolate', 'kg', '2', '80', '3', 'SupplierD']
+                    ].map((row, index) => (
+                      <tr key={index} className="border-t border-indigo-100 hover:bg-indigo-25 transition-colors">
+                        {row.map((cell, cellIndex) => (
+                          <td key={cellIndex} className="p-3 text-gray-700 border-r border-indigo-100 last:border-r-0 font-mono text-xs">
+                            {cell}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            {/* Raw CSV Format - Collapsible */}
+            <div className="mt-4">
+              <details className="group">
+                <summary className="cursor-pointer text-sm text-indigo-700 hover:text-indigo-800 font-medium flex items-center gap-2">
+                  <span className="group-open:rotate-90 transition-transform">▶</span>
+                  View Raw CSV Format
+                </summary>
+                <div className="mt-3 bg-gray-900 p-4 rounded-lg overflow-x-auto">
+                  <pre className="text-green-400 text-xs font-mono leading-relaxed">
+{`name,unit,quantity,purchase_price,waste_percent,supplier
+Espresso Beans,kg,5,100,2,SupplierA
+
+Chocolate,kg,2,80,3,SupplierD`}
+                  </pre>
+                </div>
+              </details>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter className="pt-6">
+          <Button
+            onClick={() => setShowGuidelinesModal(false)}
+            className="bg-blue-600 hover:bg-blue-700 transition-all duration-200 px-6"
+          >
+            Got it!
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )}
+</AnimatePresence>            
             </div>
           </main>
         </div>
