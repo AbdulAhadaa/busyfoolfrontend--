@@ -165,7 +165,7 @@ export default function Sales() {
     () => [
       { key: "product_name", label: "Product Name", required: true, description: "Name of the product being sold" },
       { key: "quantity_sold", label: "Quantity Sold", required: true, description: "Number of items sold" },
-      { key: "sale_price", label: "Sale Price", required: false, description: "Price per unit " },
+      { key: "sale_price", label: "Amount", required: false, description: "Total sales amount " },
       { key: "sale_date", label: "Sale Date", required: false, description: "Date of sale (optional)" },
     ],
     [],
